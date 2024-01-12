@@ -1,5 +1,6 @@
 //! `builtin_types` in asdl.py and Attributed
 
+use std::fmt::Display;
 use crate::bigint::BigInt;
 
 pub type String = std::string::String;
@@ -86,6 +87,12 @@ impl<'a> From<&'a str> for Identifier {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Int(u32);
+
+impl Display for Int {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl Int {
     pub fn new(i: u32) -> Self {
