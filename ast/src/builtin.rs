@@ -1,12 +1,18 @@
 //! `builtin_types` in asdl.py and Attributed
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display, Formatter, Pointer};
 use crate::bigint::BigInt;
 
 pub type String = std::string::String;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Identifier(String);
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
 impl Identifier {
     #[inline]
@@ -131,6 +137,48 @@ pub enum Constant {
     Float(f64),
     Complex { real: f64, imag: f64 },
     Ellipsis,
+}
+
+impl Display for Constant {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Constant::None => "None".fmt(f),
+            Constant::Bool(true) => "True".fmt(f),
+            Constant::Bool(false) => "False".fmt(f),
+            Constant::Str(x) => x.fmt(f),
+            Constant::Bytes(x) => {
+                let escape = rustpython_literal::escape::AsciiEscape::new_repr(x);
+                let repr = escape.bytes_repr().to_string().unwrap();
+                repr.fmt(f)
+            }
+            Constant::Int(x) => x.fmt(f),
+            Constant::Tuple(constants) => {
+                if let [elt] = &**constants {
+                    write!(f, "({elt},)")
+                } else {
+                    f.write_str("(")?;
+                    for (i, elt) in constants.iter().enumerate() {
+                        if i != 0 {
+                            f.write_str(", ")?;
+                        }
+                        elt.fmt(f)?;
+                    }
+                    f.write_str(")")
+                }
+            }
+            Constant::Float(float) => float.fmt(f),
+            Constant::Complex { real, imag } => {
+                if *real == 0.0 {
+                    write!(f, "{imag}j")
+                } else {
+                    write!(f, "({real}{imag:+}j)")
+                }
+            }
+            Constant::Ellipsis => {
+                f.write_str("...")
+            }
+        }
+    }
 }
 
 impl Constant {

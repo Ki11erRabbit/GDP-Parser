@@ -13,6 +13,7 @@ trait Unparsable {
 }
 
 use std::fmt;
+use std::fmt::format;
 use crate::text_size::TextRange;
 #[derive(Clone, Debug, PartialEq, is_macro::Is)]
 pub enum Ast<R = TextRange> {
@@ -1335,7 +1336,7 @@ impl Unparsable for StmtImportFrom {
         let mut result = String::new();
         result.push_str(&format!("{}from ", SPACING.repeat(indentation_level)));
         if let Some(module) = &self.module {
-            result.push_str(&module.unparse(indentation_level));
+            result.push_str(&format!("{} ", module));
         }
         /*if let Some(level) = &self.level {
             result.push_str(&format!("{}.", level));
@@ -2326,7 +2327,7 @@ pub struct ExprConstant<R = TextRange> {
 impl Unparsable for ExprConstant {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
-        result.push_str(&self.value.unparse(0));
+        result.push_str(&format!("{}", self.value));
         result
     }
 }
