@@ -1085,6 +1085,18 @@ pub struct StmtMatch<R = TextRange> {
     pub cases: Vec<MatchCase<R>>,
 }
 
+impl Unparsable for StmtMatch {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}match {}", SPACING.repeat(indentation_level), self.subject.unparse(indentation_level)));
+        result.push_str(":\n");
+        for case in &self.cases {
+            result.push_str(&format!("\n{}", case.unparse(indentation_level)));
+        }
+        result
+    }
+}
+
 impl<R> Node for StmtMatch<R> {
     const NAME: &'static str = "Match";
     const FIELD_NAMES: &'static [&'static str] = &["subject", "cases"];
