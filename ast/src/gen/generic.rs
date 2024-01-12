@@ -2433,7 +2433,7 @@ impl<R> Unparsable for ExprSubscript<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.value.as_ref().unparse(0));
-        result.push_str(&format!("[{}]", self.slice.as_ref().unparse(0)));
+        result.push_str(&format!("[{}]", (*self.slice).unparse(0)));
         result
     }
 }
