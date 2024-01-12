@@ -2297,7 +2297,12 @@ pub struct ExprFormattedValue<R = TextRange> {
 impl Unparsable for ExprFormattedValue {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
-        result.push_str(&format!("{}{}{}", self.value.unparse(0), self.conversion.unparse(0), self.format_spec.as_ref().map_or("".to_string(), |x| x.unparse(0))));
+        result.push_str("{");
+        result.push_str(&self.value.unparse(0));
+        if let Some(format_spec) = &self.format_spec {
+            result.push_str(&format!(":{}", format_spec.unparse(0)));
+        }
+        result.push_str("}");
         result
     }
 }
