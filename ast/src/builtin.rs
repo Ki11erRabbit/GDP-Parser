@@ -1,6 +1,5 @@
 //! `builtin_types` in asdl.py and Attributed
 
-use std::fmt::{Debug, Pointer};
 use crate::bigint::BigInt;
 
 pub type String = std::string::String;
@@ -60,7 +59,7 @@ impl AsRef<String> for Identifier {
 
 impl std::fmt::Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        format!("{}", self.0).fmt(f)
+        self.0.fmt(f)
     }
 }
 
@@ -87,12 +86,6 @@ impl<'a> From<&'a str> for Identifier {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Int(u32);
-
-impl std::fmt::Display for Int {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
 
 impl Int {
     pub fn new(i: u32) -> Self {
@@ -132,7 +125,6 @@ pub enum Constant {
     Complex { real: f64, imag: f64 },
     Ellipsis,
 }
-
 
 impl Constant {
     pub fn is_true(self) -> bool {
