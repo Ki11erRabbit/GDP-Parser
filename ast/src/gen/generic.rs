@@ -1620,7 +1620,7 @@ pub enum Expr<R = TextRange> {
     Slice(ExprSlice<R>),
 }
 
-impl Unparsable for Expr {
+impl Unparsable for Expr<_> {
     fn unparse(&self, indentation_level: usize) -> String {
         let indentation_level = 0;
         match self {
@@ -1655,7 +1655,7 @@ impl Unparsable for Expr {
     }
 }
 
-impl Unparsable for &Expr {
+impl Unparsable for &Expr<_> {
     fn unparse(&self, indentation_level: usize) -> String {
         let indentation_level = 0;
         match self {
@@ -2433,7 +2433,7 @@ impl<R> Unparsable for ExprSubscript<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.value.as_ref().unparse(0));
-        result.push_str(&format!("[{}]", (*self.slice).unparse(0)));
+        result.push_str(&format!("[{}]", self.slice.as_ref().unparse(0)));
         result
     }
 }
