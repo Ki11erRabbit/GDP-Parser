@@ -60,7 +60,7 @@ impl AsRef<String> for Identifier {
 
 impl std::fmt::Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        format!("{}", self.0).fmt(f)
     }
 }
 
