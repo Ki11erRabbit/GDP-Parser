@@ -1301,7 +1301,7 @@ impl Unparsable for StmtImport {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&name.unparse(indentation_level));
+            result.push_str(&format!("{}", name));
         }
         result
     }
@@ -1346,7 +1346,7 @@ impl Unparsable for StmtImportFrom {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&name.unparse(indentation_level));
+            result.push_str(&format!("{}", name));
         }
         result
     }
@@ -1382,7 +1382,7 @@ impl Unparsable for StmtGlobal {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&name.unparse(indentation_level));
+            result.push_str(&format!("{}", name));
         }
         result
     }
@@ -1418,7 +1418,7 @@ impl Unparsable for StmtNonlocal {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&name.unparse(indentation_level));
+            result.push_str(&format!("{}", name));
         }
         result
     }
