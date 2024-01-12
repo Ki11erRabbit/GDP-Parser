@@ -1301,7 +1301,7 @@ impl Unparsable for StmtImport {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&format!("{}", name));
+            result.push_str(&name.unparse(indentation_level));
         }
         result
     }
@@ -1346,7 +1346,7 @@ impl Unparsable for StmtImportFrom {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&format!("{}", name));
+            result.push_str(&name.unparse(indentation_level));
         }
         result
     }
@@ -1621,6 +1621,41 @@ pub enum Expr<R = TextRange> {
 }
 
 impl Unparsable for Expr {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let indentation_level = 0;
+        match self {
+            Expr::BoolOp(expr) => expr.unparse(indentation_level),
+            Expr::NamedExpr(expr) => expr.unparse(indentation_level),
+            Expr::BinOp(expr) => expr.unparse(indentation_level),
+            Expr::UnaryOp(expr) => expr.unparse(indentation_level),
+            Expr::Lambda(expr) => expr.unparse(indentation_level),
+            Expr::IfExp(expr) => expr.unparse(indentation_level),
+            Expr::Dict(expr) => expr.unparse(indentation_level),
+            Expr::Set(expr) => expr.unparse(indentation_level),
+            Expr::ListComp(expr) => expr.unparse(indentation_level),
+            Expr::SetComp(expr) => expr.unparse(indentation_level),
+            Expr::DictComp(expr) => expr.unparse(indentation_level),
+            Expr::GeneratorExp(expr) => expr.unparse(indentation_level),
+            Expr::Await(expr) => expr.unparse(indentation_level),
+            Expr::Yield(expr) => expr.unparse(indentation_level),
+            Expr::YieldFrom(expr) => expr.unparse(indentation_level),
+            Expr::Compare(expr) => expr.unparse(indentation_level),
+            Expr::Call(expr) => expr.unparse(indentation_level),
+            Expr::FormattedValue(expr) => expr.unparse(indentation_level),
+            Expr::JoinedStr(expr) => expr.unparse(indentation_level),
+            Expr::Constant(expr) => expr.unparse(indentation_level),
+            Expr::Attribute(expr) => expr.unparse(indentation_level),
+            Expr::Subscript(expr) => expr.unparse(indentation_level),
+            Expr::Starred(expr) => expr.unparse(indentation_level),
+            Expr::Name(expr) => expr.unparse(indentation_level),
+            Expr::List(expr) => expr.unparse(indentation_level),
+            Expr::Tuple(expr) => expr.unparse(indentation_level),
+            Expr::Slice(expr) => expr.unparse(indentation_level),
+        }
+    }
+}
+
+impl Unparsable for &Expr {
     fn unparse(&self, indentation_level: usize) -> String {
         let indentation_level = 0;
         match self {
@@ -2360,7 +2395,7 @@ impl Unparsable for ExprAttribute {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.value.unparse(0));
-        result.push_str(&format!(".{}", self.attr.unparse(0)));
+        result.push_str(&format!(".{}", self.attr));
         result
     }
 }
@@ -2392,8 +2427,8 @@ pub struct ExprSubscript<R = TextRange> {
 impl<R> Unparsable for ExprSubscript<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
-        result.push_str(&self.value.unparse(0));
-        result.push_str(&format!("[{}]", self.slice.unparse(0)));
+        result.push_str(&self.value.as_ref().unparse(0));
+        result.push_str(&format!("[{}]", self.slice.as_ref().unparse(0)));
         result
     }
 }
@@ -2455,7 +2490,7 @@ pub struct ExprName<R = TextRange> {
 impl Unparsable for ExprName {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
-        result.push_str(&self.id.unparse(0));
+        result.push_str(&format!("{}", self.id));
         result
     }
 }
