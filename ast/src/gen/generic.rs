@@ -4331,6 +4331,14 @@ pub enum TypeIgnore<R = TextRange> {
     TypeIgnore(TypeIgnoreTypeIgnore<R>),
 }
 
+impl Unparsable for TypeIgnore {
+    fn unparse(&self, indent: usize) -> String {
+        match self {
+            TypeIgnore::TypeIgnore(type_ignore) => type_ignore.unparse(indent),
+        }
+    }
+}
+
 
 /// See also [TypeIgnore](https://docs.python.org/3/library/ast.html#ast.TypeIgnore)
 #[derive(Clone, Debug, PartialEq)]
@@ -4338,6 +4346,17 @@ pub struct TypeIgnoreTypeIgnore<R = TextRange> {
     pub range: OptionalRange<R>,
     pub lineno: Int,
     pub tag: String,
+}
+
+impl Unparsable for TypeIgnoreTypeIgnore {
+    fn unparse(&self, indent: usize) -> String {
+        let mut result = String::new();
+        result.push_str("# type: ");
+        result.push_str(&self.lineno.unparse(indent));
+        result.push_str(" ");
+        result.push_str(&self.tag);
+        result
+    }
 }
 
 impl<R> Node for TypeIgnoreTypeIgnore<R> {
