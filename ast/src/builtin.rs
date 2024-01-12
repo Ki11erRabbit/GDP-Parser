@@ -133,47 +133,6 @@ pub enum Constant {
     Ellipsis,
 }
 
-impl Display for Constant {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Constant::None => "None".fmt(f),
-            Constant::Bool(true) => "True".fmt(f),
-            Constant::Bool(false) => "False".fmt(f),
-            Constant::Str(x) => x.fmt(f),
-            Constant::Bytes(x) => {
-                let escape = rustpython_literal::escape::AsciiEscape::new_repr(x);
-                let repr = escape.bytes_repr().to_string().unwrap();
-                repr.fmt(f)
-            }
-            Constant::Int(x) => x.fmt(f),
-            Constant::Tuple(constants) => {
-                if let [elt] = &**constants {
-                    write!(f, "({elt},)")
-                } else {
-                    f.write_str("(")?;
-                    for (i, elt) in constants.iter().enumerate() {
-                        if i != 0 {
-                            f.write_str(", ")?;
-                        }
-                        elt.fmt(f)?;
-                    }
-                    f.write_str(")")
-                }
-            }
-            Constant::Float(float) => float.fmt(f),
-            Constant::Complex { real, imag } => {
-                if *real == 0.0 {
-                    write!(f, "{imag}j")
-                } else {
-                    write!(f, "({real}{imag:+}j)")
-                }
-            }
-            Constant::Ellipsis => {
-                f.write_str("...")
-            }
-        }
-    }
-}
 
 impl Constant {
     pub fn is_true(self) -> bool {
