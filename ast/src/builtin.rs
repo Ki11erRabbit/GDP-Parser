@@ -1,6 +1,6 @@
 //! `builtin_types` in asdl.py and Attributed
 
-use std::fmt::{Debug, Formatter, Pointer};
+use std::fmt::{Debug, Pointer};
 use crate::bigint::BigInt;
 
 pub type String = std::string::String;
