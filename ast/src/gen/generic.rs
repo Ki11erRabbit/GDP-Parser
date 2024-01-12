@@ -1698,7 +1698,7 @@ pub struct ExprBoolOp<R = TextRange> {
     pub values: Vec<Expr<R>>,
 }
 
-impl Unparsable for ExprBoolOp {
+impl<R> Unparsable for ExprBoolOp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.values[0].unparse(0));
@@ -1732,7 +1732,7 @@ pub struct ExprNamedExpr<R = TextRange> {
     pub value: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprNamedExpr {
+impl<R> Unparsable for ExprNamedExpr<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.target.unparse(0));
@@ -1766,7 +1766,7 @@ pub struct ExprBinOp<R = TextRange> {
     pub right: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprBinOp {
+impl<R> Unparsable for ExprBinOp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.left.unparse(0));
@@ -1799,7 +1799,7 @@ pub struct ExprUnaryOp<R = TextRange> {
     pub operand: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprUnaryOp {
+impl<R> Unparsable for ExprUnaryOp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}{}", self.op.unparse(0), self.operand.unparse(0)));
@@ -1830,7 +1830,7 @@ pub struct ExprLambda<R = TextRange> {
     pub body: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprLambda {
+impl<R> Unparsable for ExprLambda<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("lambda {}: {}", self.args.unparse(0), self.body.unparse(0)));
@@ -1862,7 +1862,7 @@ pub struct ExprIfExp<R = TextRange> {
     pub orelse: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprIfExp {
+impl<R> Unparsable for ExprIfExp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{} if {} else {}", self.body.unparse(0), self.test.unparse(0), self.orelse.unparse(0)));
@@ -1894,7 +1894,7 @@ pub struct ExprDict<R = TextRange> {
 }
 
 
-impl Unparsable for ExprDict {
+impl<R> Unparsable for ExprDict<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("{");
@@ -1934,7 +1934,7 @@ pub struct ExprSet<R = TextRange> {
     pub elts: Vec<Expr<R>>,
 }
 
-impl Unparsable for ExprSet {
+impl<R> Unparsable for ExprSet<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("{");
@@ -1972,7 +1972,7 @@ pub struct ExprListComp<R = TextRange> {
     pub generators: Vec<Comprehension<R>>,
 }
 
-impl Unparsable for ExprListComp {
+impl<R> Unparsable for ExprListComp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("[");
@@ -2008,7 +2008,7 @@ pub struct ExprSetComp<R = TextRange> {
     pub generators: Vec<Comprehension<R>>,
 }
 
-impl Unparsable for ExprSetComp {
+impl<R> Unparsable for ExprSetComp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("{");
@@ -2045,7 +2045,7 @@ pub struct ExprDictComp<R = TextRange> {
     pub generators: Vec<Comprehension<R>>,
 }
 
-impl Unparsable for ExprDictComp {
+impl<R> Unparsable for ExprDictComp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("{");
@@ -2083,7 +2083,7 @@ pub struct ExprGeneratorExp<R = TextRange> {
     pub generators: Vec<Comprehension<R>>,
 }
 
-impl Unparsable for ExprGeneratorExp {
+impl<R> Unparsable for ExprGeneratorExp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("(");
@@ -2118,7 +2118,7 @@ pub struct ExprAwait<R = TextRange> {
     pub value: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprAwait {
+impl<R> Unparsable for ExprAwait<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("await {}", self.value.unparse(0)));
@@ -2148,7 +2148,7 @@ pub struct ExprYield<R = TextRange> {
     pub value: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for ExprYield {
+impl<R> Unparsable for ExprYield<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("yield");
@@ -2181,7 +2181,7 @@ pub struct ExprYieldFrom<R = TextRange> {
     pub value: Box<Expr<R>>,
 }
 
-impl Unparsable for ExprYieldFrom {
+impl<R> Unparsable for ExprYieldFrom<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("yield from {}", self.value.unparse(0)));
@@ -2213,7 +2213,7 @@ pub struct ExprCompare<R = TextRange> {
     pub comparators: Vec<Expr<R>>,
 }
 
-impl Unparsable for ExprCompare {
+impl<R> Unparsable for ExprCompare<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.left.unparse(0));
@@ -2248,7 +2248,7 @@ pub struct ExprCall<R = TextRange> {
     pub keywords: Vec<Keyword<R>>,
 }
 
-impl Unparsable for ExprCall {
+impl<R> Unparsable for ExprCall<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.func.unparse(0));
@@ -2329,7 +2329,7 @@ pub struct ExprJoinedStr<R = TextRange> {
     pub values: Vec<Expr<R>>,
 }
 
-impl Unparsable for ExprJoinedStr {
+impl<R> Unparsable for ExprJoinedStr<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("f\"");
@@ -2364,7 +2364,7 @@ pub struct ExprConstant<R = TextRange> {
     pub kind: Option<String>,
 }
 
-impl Unparsable for ExprConstant {
+impl<R> Unparsable for ExprConstant<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}", self.value));
@@ -2396,7 +2396,7 @@ pub struct ExprAttribute<R = TextRange> {
     pub ctx: ExprContext,
 }
 
-impl Unparsable for ExprAttribute {
+impl<R> Unparsable for ExprAttribute<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.value.unparse(0));
@@ -2461,7 +2461,7 @@ pub struct ExprStarred<R = TextRange> {
     pub ctx: ExprContext,
 }
 
-impl Unparsable for ExprStarred {
+impl<R> Unparsable for ExprStarred<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("*{}", self.value.unparse(0)));
@@ -2492,7 +2492,7 @@ pub struct ExprName<R = TextRange> {
     pub ctx: ExprContext,
 }
 
-impl Unparsable for ExprName {
+impl<R> Unparsable for ExprName<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}", self.id));
@@ -2600,7 +2600,7 @@ pub struct ExprSlice<R = TextRange> {
     pub step: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for ExprSlice {
+impl<R> Unparsable for ExprSlice<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("[");
