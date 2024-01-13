@@ -3051,7 +3051,7 @@ pub enum BoolOp {
     Or,
 }
 
-impl<R> Unparsable for BoolOp<R> {
+impl Unparsable for BoolOp {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(match self {
