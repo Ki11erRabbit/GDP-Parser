@@ -178,7 +178,7 @@ impl<R> Unparsable for ModModule<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         for stmt in &self.body {
-            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), stmt.unparse(indentation_level)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level), stmt.unparse(indentation_level)));
         }
         for type_ignore in &self.type_ignores {
             result.push_str(&format!("\n{}", type_ignore.unparse(indentation_level)));
