@@ -1289,7 +1289,7 @@ impl<R> Unparsable for StmtTry<R> {
             result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         for handler in &self.handlers {
-            result.push_str(&format!("{}\n", handler.unparse(indentation_level)));
+            result.push_str(&format!("{}\n", handler.unparse(indentation_level + 7)));
         }
         if !self.orelse.is_empty() {
             result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
