@@ -438,7 +438,9 @@ impl<R> Unparsable for StmtFunctionDef<R> {
             }
             result.push_str("]");
         }
+        result.push('(');
         result.push_str(&self.args.unparse(indentation_level));
+        result.push(')');
         if let Some(returns) = &self.returns {
             result.push_str(&format!(" -> {}", returns.unparse(indentation_level)));
         }
@@ -508,7 +510,9 @@ impl<R> Unparsable for StmtAsyncFunctionDef<R> {
             }
             result.push_str("]");
         }
+        result.push('(');
         result.push_str(&self.args.unparse(indentation_level));
+        result.push(')');
         if let Some(returns) = &self.returns {
             result.push_str(&format!(" -> {}", returns.unparse(indentation_level)));
         }
@@ -4696,7 +4700,6 @@ pub struct Arguments<R = TextRange> {
 impl<R> Unparsable for Arguments<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
-        result.push('(');
         for arg in &self.posonlyargs {
             result.push_str(&arg.unparse(indent));
             result.push_str(", ");
@@ -4721,7 +4724,6 @@ impl<R> Unparsable for Arguments<R> {
         }
         result.pop();
         result.pop();
-        result.push(')');
         result
     }
 }
