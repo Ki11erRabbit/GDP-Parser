@@ -1297,7 +1297,7 @@ pub struct StmtWith<R = TextRange> {
     pub type_comment: Option<String>,
 }
 
-impl Unparsable for StmtWith {
+impl<R> Unparsable for StmtWith<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}with ", SPACING.repeat(indentation_level)));
@@ -1342,7 +1342,7 @@ pub struct StmtAsyncWith<R = TextRange> {
     pub type_comment: Option<String>,
 }
 
-impl Unparsable for StmtAsyncWith {
+impl<R> Unparsable for StmtAsyncWith<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}async with ", SPACING.repeat(indentation_level)));
@@ -1386,7 +1386,7 @@ pub struct StmtMatch<R = TextRange> {
     pub cases: Vec<MatchCase<R>>,
 }
 
-impl Unparsable for StmtMatch {
+impl<R> Unparsable for StmtMatch<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}match {}", SPACING.repeat(indentation_level), self.subject.unparse(indentation_level)));
@@ -1421,7 +1421,7 @@ pub struct StmtRaise<R = TextRange> {
     pub cause: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for StmtRaise {
+impl<R> Unparsable for StmtRaise<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}raise", SPACING.repeat(indentation_level)));
@@ -1460,7 +1460,7 @@ pub struct StmtTry<R = TextRange> {
     pub finalbody: Vec<Stmt<R>>,
 }
 
-impl Unparsable for StmtTry {
+impl<R> Unparsable for StmtTry<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}try:", SPACING.repeat(indentation_level)));
@@ -1511,7 +1511,7 @@ pub struct StmtTryStar<R = TextRange> {
     pub finalbody: Vec<Stmt<R>>,
 }
 
-impl Unparsable for StmtTryStar {
+impl<R> Unparsable for StmtTryStar<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}try:", SPACING.repeat(indentation_level)));
@@ -1560,7 +1560,7 @@ pub struct StmtAssert<R = TextRange> {
     pub msg: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for StmtAssert {
+impl<R> Unparsable for StmtAssert<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}assert {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
@@ -1593,7 +1593,7 @@ pub struct StmtImport<R = TextRange> {
     pub names: Vec<Alias<R>>,
 }
 
-impl Unparsable for StmtImport {
+impl<R> Unparsable for StmtImport<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}import ", SPACING.repeat(indentation_level)));
@@ -1631,7 +1631,7 @@ pub struct StmtImportFrom<R = TextRange> {
     pub level: Option<Int>,
 }
 
-impl Unparsable for StmtImportFrom {
+impl<R> Unparsable for StmtImportFrom<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}from ", SPACING.repeat(indentation_level)));
@@ -1674,7 +1674,7 @@ pub struct StmtGlobal<R = TextRange> {
     pub names: Vec<Identifier>,
 }
 
-impl Unparsable for StmtGlobal {
+impl<R> Unparsable for StmtGlobal<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}global ", SPACING.repeat(indentation_level)));
@@ -1710,7 +1710,7 @@ pub struct StmtNonlocal<R = TextRange> {
     pub names: Vec<Identifier>,
 }
 
-impl Unparsable for StmtNonlocal {
+impl<R> Unparsable for StmtNonlocal<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}nonlocal ", SPACING.repeat(indentation_level)));
@@ -1746,7 +1746,7 @@ pub struct StmtExpr<R = TextRange> {
     pub value: Box<Expr<R>>,
 }
 
-impl Unparsable for StmtExpr {
+impl<R> Unparsable for StmtExpr<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.value.unparse(indentation_level));
@@ -1775,7 +1775,7 @@ pub struct StmtPass<R = TextRange> {
     pub range: R,
 }
 
-impl Unparsable for StmtPass {
+impl<R> Unparsable for StmtPass<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}pass", SPACING.repeat(indentation_level)));
@@ -1804,7 +1804,7 @@ pub struct StmtBreak<R = TextRange> {
     pub range: R,
 }
 
-impl Unparsable for StmtBreak {
+impl<R> Unparsable for StmtBreak<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}break", SPACING.repeat(indentation_level)));
@@ -1833,7 +1833,7 @@ pub struct StmtContinue<R = TextRange> {
     pub range: R,
 }
 
-impl Unparsable for StmtContinue {
+impl<R> Unparsable for StmtContinue<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}continue", SPACING.repeat(indentation_level)));
