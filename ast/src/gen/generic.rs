@@ -3,7 +3,7 @@
 const SPACING: &str = "    ";
 
 
-pub fn unparse(module: ModModule) -> String {
+pub fn unparse<R>(module: ModModule<R>) -> String {
     module.unparse(0)
 }
 
