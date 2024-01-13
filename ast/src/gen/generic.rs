@@ -335,7 +335,7 @@ pub enum Stmt<R = TextRange> {
     Continue(StmtContinue<R>),
 }
 
-impl Unparsable for Stmt {
+impl<R> Unparsable for Stmt<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         match self {
             Stmt::FunctionDef(x) => x.unparse(indentation_level),
@@ -3822,7 +3822,7 @@ impl<R> Unparsable for ExceptHandlerExceptHandler<R> {
         }
         if let Some(name) = &self.name {
             result.push_str(" as ");
-            result.push_str(&name.unparse(indent));
+            result.push_str(&format!("{}", name));
         }
         result.push_str(":\n");
         for stmt in &self.body {
@@ -4568,7 +4568,7 @@ pub struct Arguments<R = TextRange> {
     pub kwarg: Option<Box<Arg<R>>>,
 }
 
-impl Unparsable for Arguments {
+impl<R> Unparsable for Arguments<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push('(');
