@@ -1833,7 +1833,7 @@ pub struct ExprLambda<R = TextRange> {
 impl<R> Unparsable for ExprLambda<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
-        result.push_str(&format!("lambda {}: {}", self.args.unparse(0), self.body.unparse(0)));
+        result.push_str(&format!("lambda {}: {}", self.args.as_ref().unparse(0), self.body.unparse(0)));
         result
     }
 }
@@ -2294,7 +2294,7 @@ pub struct ExprFormattedValue<R = TextRange> {
     pub format_spec: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for ExprFormattedValue {
+impl<R> Unparsable for ExprFormattedValue<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str("{");
@@ -3767,7 +3767,7 @@ pub struct Comprehension<R = TextRange> {
     pub is_async: bool,
 }
 
-impl Unparsable for Comprehension {
+impl<R> Unparsable for Comprehension<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         if self.is_async {
@@ -3812,7 +3812,7 @@ pub struct ExceptHandlerExceptHandler<R = TextRange> {
     pub body: Vec<Stmt<R>>,
 }
 
-impl Unparsable for ExceptHandlerExceptHandler {
+impl<R> Unparsable for ExceptHandlerExceptHandler<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str("except");
@@ -3866,7 +3866,7 @@ pub struct PythonArguments<R = TextRange> {
     pub defaults: Vec<Expr<R>>,
 }
 
-impl Unparsable for PythonArguments {
+impl<R> Unparsable for PythonArguments<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push('(');
@@ -3928,7 +3928,7 @@ pub struct Arg<R = TextRange> {
     pub type_comment: Option<String>,
 }
 
-impl Unparsable for Arg {
+impl<R> Unparsable for Arg<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.arg.unparse(indent));
@@ -3953,7 +3953,7 @@ pub struct Keyword<R = TextRange> {
     pub value: Expr<R>,
 }
 
-impl Unparsable for Keyword {
+impl<R> Unparsable for Keyword<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         if let Some(arg) = &self.arg {
@@ -3987,7 +3987,7 @@ pub struct Alias<R = TextRange> {
     pub asname: Option<Identifier>,
 }
 
-impl Unparsable for Alias {
+impl<R> Unparsable for Alias<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.name.unparse(indent));
