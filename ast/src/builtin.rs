@@ -85,7 +85,7 @@ impl<'a> From<&'a str> for Identifier {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Int(u32);
+pub struct Int(pub(crate) u32);
 
 impl Int {
     pub fn new(i: u32) -> Self {

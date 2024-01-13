@@ -4231,7 +4231,7 @@ pub struct Arg<R = TextRange> {
 impl<R> Unparsable for Arg<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
-        result.push_str(&self.arg.unparse(indent));
+        result.push_str(&format!("{}", self.arg));
         if let Some(annotation) = &self.annotation {
             result.push_str(": ");
             result.push_str(&annotation.unparse(indent));
@@ -4257,7 +4257,7 @@ impl<R> Unparsable for Keyword<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         if let Some(arg) = &self.arg {
-            result.push_str(&arg.unparse(indent));
+            result.push_str(&format!("{}", arg));
             result.push('=');
         }
         result.push_str(&self.value.unparse(indent));
@@ -4290,10 +4290,10 @@ pub struct Alias<R = TextRange> {
 impl<R> Unparsable for Alias<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
-        result.push_str(&self.name.unparse(indent));
+        result.push_str(&format!("{}", self.name));
         if let Some(asname) = &self.asname {
             result.push_str(" as ");
-            result.push_str(&asname.unparse(indent));
+            result.push_str(&format!("{}", asname));
         }
         result
     }
@@ -4318,7 +4318,7 @@ impl<R> Unparsable for WithItem<R> {
         result.push_str(&self.context_expr.unparse(indent));
         if let Some(optional_vars) = &self.optional_vars {
             result.push_str(" as ");
-            result.push_str(&optional_vars.unparse(indent));
+            result.push_str(&optional_vars.as_ref().unparse(indent));
         }
         result
     }
@@ -4345,7 +4345,7 @@ impl<R> Unparsable for MatchCase<R> {
         result.push_str(&self.pattern.unparse(indent));
         if let Some(guard) = &self.guard {
             result.push_str(" if ");
-            result.push_str(&guard.unparse(indent));
+            result.push_str(&guard.as_ref().unparse(indent));
         }
         result.push_str(":\n");
         for stmt in &self.body {
@@ -4505,7 +4505,7 @@ impl<R> Unparsable for PatternMatchMapping<R> {
         }
         if let Some(rest) = &self.rest {
             result.push_str("**");
-            result.push_str(&rest.unparse(indent));
+            result.push_str(&format!("{}", rest));
         }
         result.push('}');
         result
@@ -4548,7 +4548,7 @@ impl<R> Unparsable for PatternMatchClass<R> {
         }
         result.push(')');
         for (attr, pattern) in self.kwd_attrs.iter().zip(&self.kwd_patterns) {
-            result.push_str(&attr.unparse(indent));
+            result.push_str(&format!("{}", attr));
             result.push_str("=");
             result.push_str(&pattern.unparse(indent));
             result.push_str(", ");
@@ -4584,7 +4584,7 @@ impl<R> Unparsable for PatternMatchStar<R> {
         let mut result = String::new();
         result.push('*');
         if let Some(name) = &self.name {
-            result.push_str(&name.unparse(indent));
+            result.push_str(&format!("{}", name));
         }
         result
     }
@@ -4620,7 +4620,9 @@ impl<R> Unparsable for PatternMatchAs<R> {
             result.push_str(&pattern.unparse(indent));
             result.push_str(" as ");
         }
-        result.push_str(&self.name.unparse(indent));
+        if let Some(name) = &self.name {
+            result.push_str(&format!("{}", name));
+        }
         result
     }
 }
@@ -4705,7 +4707,7 @@ impl<R> Unparsable for TypeIgnoreTypeIgnore<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str("# type: ");
-        result.push_str(&self.lineno.unparse(indent));
+        result.push_str(&format!("{}", self.lineno.0));
         result.push_str(" ");
         result.push_str(&self.tag);
         result
@@ -4763,7 +4765,7 @@ pub struct TypeParamTypeVar<R = TextRange> {
 impl<R>Unparsable for TypeParamTypeVar<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
-        result.push_str(&self.name.unparse(indent));
+        result.push_str(&format!("{}", self.name));
         if let Some(bound) = &self.bound {
             result.push_str(": ");
             result.push_str(&bound.unparse(indent));
@@ -4796,7 +4798,7 @@ pub struct TypeParamParamSpec<R = TextRange> {
 
 impl<R> Unparsable for TypeParamParamSpec<R> {
     fn unparse(&self, indent: usize) -> String {
-        self.name.unparse(indent)
+        format!("{}", self.name)
     }
 }
 
@@ -4824,7 +4826,7 @@ pub struct TypeParamTypeVarTuple<R = TextRange> {
 
 impl<R> Unparsable for TypeParamTypeVarTuple<R> {
     fn unparse(&self, indent: usize) -> String {
-        self.name.unparse(indent)
+        format!("{}", self.name)
     }
 }
 
