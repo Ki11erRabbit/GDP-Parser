@@ -419,7 +419,41 @@ pub struct StmtFunctionDef<R = TextRange> {
     pub type_params: Vec<TypeParam<R>>,
 }
 
-impl Unparsable for StmtFunctionDef {
+impl<R> Unparsable for StmtFunctionDef<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+
+        for decorator in &self.decorator_list {
+            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
+        }
+
+        result.push_str(&format!("{}def {}", SPACING.repeat(indentation_level), self.name));
+        if self.type_params.len() > 0 {
+            result.push_str("[");
+            for (i, type_param) in self.type_params.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&type_param.unparse(indentation_level));
+            }
+            result.push_str("]");
+        }
+        result.push_str(&self.args.unparse(indentation_level));
+        if let Some(returns) = &self.returns {
+            result.push_str(&format!(" -> {}", returns.unparse(indentation_level)));
+        }
+        result.push_str(":\n");
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtFunctionDef<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
 
@@ -489,7 +523,41 @@ pub struct StmtAsyncFunctionDef<R = TextRange> {
     pub type_params: Vec<TypeParam<R>>,
 }
 
-impl Unparsable for StmtAsyncFunctionDef {
+impl<R> Unparsable for StmtAsyncFunctionDef<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+
+        for decorator in &self.decorator_list {
+            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
+        }
+
+        result.push_str(&format!("{}async def {}", SPACING.repeat(indentation_level), self.name));
+        if self.type_params.len() > 0 {
+            result.push_str("[");
+            for (i, type_param) in self.type_params.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&type_param.unparse(indentation_level));
+            }
+            result.push_str("]");
+        }
+        result.push_str(&self.args.unparse(indentation_level));
+        if let Some(returns) = &self.returns {
+            result.push_str(&format!(" -> {}", returns.unparse(indentation_level)));
+        }
+        result.push_str(":\n");
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtAsyncFunctionDef<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
 
@@ -558,7 +626,7 @@ pub struct StmtClassDef<R = TextRange> {
     pub type_params: Vec<TypeParam<R>>,
 }
 
-impl Unparsable for StmtClassDef {
+impl<R> Unparsable for StmtClassDef<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
 
@@ -595,6 +663,42 @@ impl Unparsable for StmtClassDef {
     }
 }
 
+impl<R> Unparsable for &StmtClassDef<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+
+        for decorator in &self.decorator_list {
+            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
+        }
+
+        result.push_str(&format!("{}class {}", SPACING.repeat(indentation_level), self.name));
+        if !self.bases.is_empty() {
+            result.push_str("(");
+            for (i, base) in self.bases.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&base.unparse(indentation_level));
+            }
+            result.push_str(")");
+        }
+        if !self.keywords.is_empty() {
+            result.push_str("(");
+            for (i, keyword) in self.keywords.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&keyword.unparse(indentation_level));
+            }
+            result.push_str(")");
+        }
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        result
+    }
+}
 impl<R> Node for StmtClassDef<R> {
     const NAME: &'static str = "ClassDef";
     const FIELD_NAMES: &'static [&'static str] = &[
@@ -624,7 +728,18 @@ pub struct StmtReturn<R = TextRange> {
     pub value: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for StmtReturn {
+impl<R> Unparsable for StmtReturn<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}return", SPACING.repeat(indentation_level)));
+        if let Some(value) = &self.value {
+            result.push_str(&format!(" {}", value.unparse(indentation_level)));
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtReturn<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}return", SPACING.repeat(indentation_level)));
@@ -657,7 +772,21 @@ pub struct StmtDelete<R = TextRange> {
     pub targets: Vec<Expr<R>>,
 }
 
-impl Unparsable for StmtDelete {
+impl<R> Unparsable for StmtDelete<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}del ", SPACING.repeat(indentation_level)));
+        for (i, target) in self.targets.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&target.unparse(indentation_level));
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtDelete<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}del ", SPACING.repeat(indentation_level)));
@@ -695,7 +824,24 @@ pub struct StmtAssign<R = TextRange> {
     pub type_comment: Option<String>,
 }
 
-impl Unparsable for StmtAssign {
+impl<R> Unparsable for StmtAssign<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        for (i, target) in self.targets.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&target.unparse(indentation_level));
+        }
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!(": {}", type_comment));
+        }
+        result.push_str(&format!(" = {}", self.value.unparse(indentation_level)));
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtAssign<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         for (i, target) in self.targets.iter().enumerate() {
@@ -737,7 +883,26 @@ pub struct StmtTypeAlias<R = TextRange> {
     pub value: Box<Expr<R>>,
 }
 
-impl Unparsable for StmtTypeAlias {
+impl<R> Unparsable for StmtTypeAlias<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}type {}", SPACING.repeat(indentation_level), self.name));
+        if self.type_params.len() > 0 {
+            result.push_str("[");
+            for (i, type_param) in self.type_params.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&type_param.unparse(indentation_level));
+            }
+            result.push_str("]");
+        }
+        result.push_str(&format!(" = {}", self.value.unparse(indentation_level)));
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtTypeAlias<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}type {}", SPACING.repeat(indentation_level), self.name));
@@ -782,7 +947,13 @@ pub struct StmtAugAssign<R = TextRange> {
 }
 
 
-impl Unparsable for StmtAugAssign {
+impl<R> Unparsable for StmtAugAssign<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        format!("{}{} {}= {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.op.unparse(indentation_level), self.value.unparse(indentation_level))
+    }
+}
+
+impl<R> Unparsable for &StmtAugAssign<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         format!("{}{} {}= {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.op.unparse(indentation_level), self.value.unparse(indentation_level))
     }
@@ -814,7 +985,22 @@ pub struct StmtAnnAssign<R = TextRange> {
     pub simple: bool,
 }
 
-impl Unparsable for StmtAnnAssign {
+impl<R> Unparsable for StmtAnnAssign<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level)));
+
+        result.push_str(": ");
+
+        result.push_str(&self.annotation.unparse(indentation_level));
+        if let Some(value) = &self.value {
+            result.push_str(&format!(" = {}", value.unparse(indentation_level)));
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtAnnAssign<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level)));
@@ -855,7 +1041,28 @@ pub struct StmtFor<R = TextRange> {
     pub type_comment: Option<String>,
 }
 
-impl Unparsable for StmtFor {
+impl<R> Unparsable for StmtFor<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}for {} in {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.iter.unparse(indentation_level)));
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!(" # type: {}", type_comment));
+        }
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            }
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtFor<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}for {} in {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.iter.unparse(indentation_level)));
@@ -903,7 +1110,28 @@ pub struct StmtAsyncFor<R = TextRange> {
     pub type_comment: Option<String>,
 }
 
-impl Unparsable for StmtAsyncFor {
+impl<R> Unparsable for StmtAsyncFor<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}async for {} in {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.iter.unparse(indentation_level)));
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!(" # type: {}", type_comment));
+        }
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            }
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtAsyncFor<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}async for {} in {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.iter.unparse(indentation_level)));
@@ -949,7 +1177,25 @@ pub struct StmtWhile<R = TextRange> {
     pub orelse: Vec<Stmt<R>>,
 }
 
-impl Unparsable for StmtWhile {
+impl<R> Unparsable for StmtWhile<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}while {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            }
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtWhile<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}while {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
@@ -991,7 +1237,25 @@ pub struct StmtIf<R = TextRange> {
     pub orelse: Vec<Stmt<R>>,
 }
 
-impl Unparsable for StmtIf {
+impl<R> Unparsable for StmtIf<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}if {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            }
+        }
+        result
+    }
+}
+
+impl<R> Unparsable for &StmtIf<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}if {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
