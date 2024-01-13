@@ -4430,7 +4430,7 @@ pub struct PatternMatchSingleton<R = TextRange> {
 
 impl<R> Unparsable for PatternMatchSingleton<R> {
     fn unparse(&self, indent: usize) -> String {
-        self.value.unparse(indent)
+        format!("{}", self.value)
     }
 }
 
