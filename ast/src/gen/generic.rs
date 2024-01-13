@@ -447,41 +447,7 @@ impl<R> Unparsable for StmtFunctionDef<R> {
             result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
         }
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
-        }
-        result
-    }
-}
-
-impl<R> Unparsable for &StmtFunctionDef<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
-        let mut result = String::new();
-
-        for decorator in &self.decorator_list {
-            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
-        }
-
-        result.push_str(&format!("{}def {}", SPACING.repeat(indentation_level), self.name));
-        if self.type_params.len() > 0 {
-            result.push_str("[");
-            for (i, type_param) in self.type_params.iter().enumerate() {
-                if i != 0 {
-                    result.push_str(", ");
-                }
-                result.push_str(&type_param.unparse(indentation_level));
-            }
-            result.push_str("]");
-        }
-        result.push_str(&self.args.unparse(indentation_level));
-        if let Some(returns) = &self.returns {
-            result.push_str(&format!(" -> {}", returns.unparse(indentation_level)));
-        }
-        result.push_str(":\n");
-        if let Some(type_comment) = &self.type_comment {
-            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
-        }
-        for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         result
     }
