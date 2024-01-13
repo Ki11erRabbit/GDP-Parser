@@ -444,10 +444,10 @@ impl<R> Unparsable for StmtFunctionDef<R> {
         }
         result.push_str(":\n");
         if let Some(type_comment) = &self.type_comment {
-            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
         }
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         result
     }
@@ -514,48 +514,16 @@ impl<R> Unparsable for StmtAsyncFunctionDef<R> {
         }
         result.push_str(":\n");
         if let Some(type_comment) = &self.type_comment {
-            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
         }
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         result
     }
 }
 
-impl<R> Unparsable for &StmtAsyncFunctionDef<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
-        let mut result = String::new();
 
-        for decorator in &self.decorator_list {
-            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
-        }
-
-        result.push_str(&format!("{}async def {}", SPACING.repeat(indentation_level), self.name));
-        if self.type_params.len() > 0 {
-            result.push_str("[");
-            for (i, type_param) in self.type_params.iter().enumerate() {
-                if i != 0 {
-                    result.push_str(", ");
-                }
-                result.push_str(&type_param.unparse(indentation_level));
-            }
-            result.push_str("]");
-        }
-        result.push_str(&self.args.unparse(indentation_level));
-        if let Some(returns) = &self.returns {
-            result.push_str(&format!(" -> {}", returns.unparse(indentation_level)));
-        }
-        result.push_str(":\n");
-        if let Some(type_comment) = &self.type_comment {
-            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
-        }
-        for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
-        }
-        result
-    }
-}
 
 impl<R> Node for StmtAsyncFunctionDef<R> {
     const NAME: &'static str = "AsyncFunctionDef";
@@ -623,48 +591,12 @@ impl<R> Unparsable for StmtClassDef<R> {
         }
         result.push_str(":\n");
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         result
     }
 }
 
-impl<R> Unparsable for &StmtClassDef<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
-        let mut result = String::new();
-
-        for decorator in &self.decorator_list {
-            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
-        }
-
-        result.push_str(&format!("{}class {}", SPACING.repeat(indentation_level), self.name));
-        if !self.bases.is_empty() {
-            result.push_str("(");
-            for (i, base) in self.bases.iter().enumerate() {
-                if i != 0 {
-                    result.push_str(", ");
-                }
-                result.push_str(&base.unparse(indentation_level));
-            }
-            result.push_str(")");
-        }
-        if !self.keywords.is_empty() {
-            result.push_str("(");
-            for (i, keyword) in self.keywords.iter().enumerate() {
-                if i != 0 {
-                    result.push_str(", ");
-                }
-                result.push_str(&keyword.unparse(indentation_level));
-            }
-            result.push_str(")");
-        }
-        result.push_str(":\n");
-        for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
-        }
-        result
-    }
-}
 impl<R> Node for StmtClassDef<R> {
     const NAME: &'static str = "ClassDef";
     const FIELD_NAMES: &'static [&'static str] = &[
@@ -1209,35 +1141,18 @@ impl<R> Unparsable for StmtIf<R> {
         result.push_str(&format!("{}if {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
         result.push_str(":\n");
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
         }
         if !self.orelse.is_empty() {
-            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
             for stmt in &self.orelse {
-                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
             }
         }
         result
     }
 }
 
-impl<R> Unparsable for &StmtIf<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
-        let mut result = String::new();
-        result.push_str(&format!("{}if {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
-        result.push_str(":\n");
-        for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
-        }
-        if !self.orelse.is_empty() {
-            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
-            for stmt in &self.orelse {
-                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
-            }
-        }
-        result
-    }
-}
 
 impl<R> Node for StmtIf<R> {
     const NAME: &'static str = "If";
@@ -1275,10 +1190,10 @@ impl<R> Unparsable for StmtWith<R> {
         }
         result.push_str(":\n");
         if let Some(type_comment) = &self.type_comment {
-            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
         }
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
         }
         result
     }
@@ -1320,10 +1235,10 @@ impl<R> Unparsable for StmtAsyncWith<R> {
         }
         result.push_str(":\n");
         if let Some(type_comment) = &self.type_comment {
-            result.push_str(&format!("{}# type: {}", SPACING.repeat(indentation_level + 1), type_comment));
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
         }
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
         }
         result
     }
@@ -1358,7 +1273,7 @@ impl<R> Unparsable for StmtMatch<R> {
         result.push_str(&format!("{}match {}", SPACING.repeat(indentation_level), self.subject.unparse(indentation_level)));
         result.push_str(":\n");
         for case in &self.cases {
-            result.push_str(&format!("\n{}", case.unparse(indentation_level)));
+            result.push_str(&format!("{}\n", case.unparse(indentation_level)));
         }
         result
     }
@@ -1429,23 +1344,23 @@ pub struct StmtTry<R = TextRange> {
 impl<R> Unparsable for StmtTry<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
-        result.push_str(&format!("{}try:", SPACING.repeat(indentation_level)));
+        result.push_str(&format!("{}try:\n", SPACING.repeat(indentation_level)));
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         for handler in &self.handlers {
-            result.push_str(&format!("\n{}", handler.unparse(indentation_level)));
+            result.push_str(&format!("{}\n", handler.unparse(indentation_level)));
         }
         if !self.orelse.is_empty() {
-            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
             for stmt in &self.orelse {
-                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
             }
         }
         if !self.finalbody.is_empty() {
-            result.push_str(&format!("\n{}finally:", SPACING.repeat(indentation_level)));
+            result.push_str(&format!("{}finally:\n", SPACING.repeat(indentation_level)));
             for stmt in &self.finalbody {
-                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
             }
         }
         result
@@ -1480,23 +1395,23 @@ pub struct StmtTryStar<R = TextRange> {
 impl<R> Unparsable for StmtTryStar<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
-        result.push_str(&format!("{}try:", SPACING.repeat(indentation_level)));
+        result.push_str(&format!("{}try:\n", SPACING.repeat(indentation_level)));
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         for handler in &self.handlers {
-            result.push_str(&format!("\n{}", handler.unparse(indentation_level)));
+            result.push_str(&format!("{}\n", handler.unparse(indentation_level)));
         }
         if !self.orelse.is_empty() {
-            result.push_str(&format!("\n{}else:", SPACING.repeat(indentation_level)));
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
             for stmt in &self.orelse {
-                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
             }
         }
         if !self.finalbody.is_empty() {
-            result.push_str(&format!("\n{}finally:", SPACING.repeat(indentation_level)));
+            result.push_str(&format!("{}finally:\n", SPACING.repeat(indentation_level)));
             for stmt in &self.finalbody {
-                result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
             }
         }
         result
