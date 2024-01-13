@@ -1457,7 +1457,7 @@ impl<R> Unparsable for StmtImportFrom<R> {
         let mut result = String::new();
         result.push_str(&format!("{}from ", SPACING.repeat(indentation_level)));
         if let Some(module) = &self.module {
-            result.push_str(&format!("{} ", module));
+            result.push_str(&format!("{}", module));
         }
         /*if let Some(level) = &self.level {
             result.push_str(&format!("{}.", level));
