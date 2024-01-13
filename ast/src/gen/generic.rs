@@ -174,7 +174,7 @@ pub struct ModModule<R = TextRange> {
     pub type_ignores: Vec<TypeIgnore<R>>,
 }
 
-impl Unparsable for ModModule {
+impl<R> Unparsable for ModModule<R> {
     fn unparse(&self, indentation_level: usize) -> String {
         let mut result = String::new();
         for stmt in &self.body {
@@ -3051,7 +3051,7 @@ pub enum BoolOp {
     Or,
 }
 
-impl Unparsable for BoolOp {
+impl<R> Unparsable for BoolOp<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
         result.push_str(match self {
@@ -4095,7 +4095,7 @@ pub enum ExceptHandler<R = TextRange> {
     ExceptHandler(ExceptHandlerExceptHandler<R>),
 }
 
-impl Unparsable for ExceptHandler {
+impl<R> Unparsable for ExceptHandler<R> {
     fn unparse(&self, indent: usize) -> String {
         match self {
             ExceptHandler::ExceptHandler(except_handler) => except_handler.unparse(indent),
@@ -4312,7 +4312,7 @@ pub struct WithItem<R = TextRange> {
     pub optional_vars: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for WithItem {
+impl<R> Unparsable for WithItem<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.context_expr.unparse(indent));
@@ -4338,7 +4338,7 @@ pub struct MatchCase<R = TextRange> {
     pub body: Vec<Stmt<R>>,
 }
 
-impl Unparsable for MatchCase {
+impl<R> Unparsable for MatchCase<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str("case ");
@@ -4374,7 +4374,7 @@ pub enum Pattern<R = TextRange> {
     MatchOr(PatternMatchOr<R>),
 }
 
-impl Unparsable for Pattern {
+impl<R> Unparsable for Pattern<R> {
     fn unparse(&self, indent: usize) -> String {
         match self {
             Pattern::MatchValue(pattern_match_value) => pattern_match_value.unparse(indent),
@@ -4400,7 +4400,7 @@ pub struct PatternMatchValue<R = TextRange> {
     pub value: Box<Expr<R>>,
 }
 
-impl Unparsable for PatternMatchValue {
+impl<R> Unparsable for PatternMatchValue<R> {
     fn unparse(&self, indent: usize) -> String {
         self.value.unparse(indent)
     }
@@ -4428,7 +4428,7 @@ pub struct PatternMatchSingleton<R = TextRange> {
     pub value: Constant,
 }
 
-impl Unparsable for PatternMatchSingleton {
+impl<R> Unparsable for PatternMatchSingleton<R> {
     fn unparse(&self, indent: usize) -> String {
         self.value.unparse(indent)
     }
@@ -4456,7 +4456,7 @@ pub struct PatternMatchSequence<R = TextRange> {
     pub patterns: Vec<Pattern<R>>,
 }
 
-impl Unparsable for PatternMatchSequence {
+impl<R> Unparsable for PatternMatchSequence<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push('(');
@@ -4493,7 +4493,7 @@ pub struct PatternMatchMapping<R = TextRange> {
     pub rest: Option<Identifier>,
 }
 
-impl Unparsable for PatternMatchMapping {
+impl<R> Unparsable for PatternMatchMapping<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push('{');
@@ -4537,7 +4537,7 @@ pub struct PatternMatchClass<R = TextRange> {
     pub kwd_patterns: Vec<Pattern<R>>,
 }
 
-impl Unparsable for PatternMatchClass {
+impl<R> Unparsable for PatternMatchClass<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.cls.unparse(indent));
@@ -4579,7 +4579,7 @@ pub struct PatternMatchStar<R = TextRange> {
     pub name: Option<Identifier>,
 }
 
-impl Unparsable for PatternMatchStar {
+impl<R> Unparsable for PatternMatchStar<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push('*');
@@ -4613,7 +4613,7 @@ pub struct PatternMatchAs<R = TextRange> {
     pub name: Option<Identifier>,
 }
 
-impl Unparsable for PatternMatchAs {
+impl<R> Unparsable for PatternMatchAs<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         if let Some(pattern) = &self.pattern {
@@ -4647,7 +4647,7 @@ pub struct PatternMatchOr<R = TextRange> {
     pub patterns: Vec<Pattern<R>>,
 }
 
-impl Unparsable for PatternMatchOr {
+impl<R> Unparsable for PatternMatchOr<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         for pattern in &self.patterns {
@@ -4684,7 +4684,7 @@ pub enum TypeIgnore<R = TextRange> {
     TypeIgnore(TypeIgnoreTypeIgnore<R>),
 }
 
-impl Unparsable for TypeIgnore {
+impl<R> Unparsable for TypeIgnore<R> {
     fn unparse(&self, indent: usize) -> String {
         match self {
             TypeIgnore::TypeIgnore(type_ignore) => type_ignore.unparse(indent),
@@ -4701,7 +4701,7 @@ pub struct TypeIgnoreTypeIgnore<R = TextRange> {
     pub tag: String,
 }
 
-impl Unparsable for TypeIgnoreTypeIgnore {
+impl<R> Unparsable for TypeIgnoreTypeIgnore<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str("# type: ");
@@ -4740,7 +4740,7 @@ pub enum TypeParam<R = TextRange> {
     TypeVarTuple(TypeParamTypeVarTuple<R>),
 }
 
-impl Unparsable for TypeParam {
+impl<R> Unparsable for TypeParam<R> {
     fn unparse(&self, indent: usize) -> String {
         match self {
             TypeParam::TypeVar(type_param_type_var) => type_param_type_var.unparse(indent),
@@ -4760,7 +4760,7 @@ pub struct TypeParamTypeVar<R = TextRange> {
     pub bound: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for TypeParamTypeVar {
+impl<R>Unparsable for TypeParamTypeVar<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.name.unparse(indent));
@@ -4794,7 +4794,7 @@ pub struct TypeParamParamSpec<R = TextRange> {
     pub name: Identifier,
 }
 
-impl Unparsable for TypeParamParamSpec {
+impl<R> Unparsable for TypeParamParamSpec<R> {
     fn unparse(&self, indent: usize) -> String {
         self.name.unparse(indent)
     }
@@ -4822,7 +4822,7 @@ pub struct TypeParamTypeVarTuple<R = TextRange> {
     pub name: Identifier,
 }
 
-impl Unparsable for TypeParamTypeVarTuple {
+impl<R> Unparsable for TypeParamTypeVarTuple<R> {
     fn unparse(&self, indent: usize) -> String {
         self.name.unparse(indent)
     }
@@ -4916,7 +4916,7 @@ pub struct ArgWithDefault<R = TextRange> {
     pub default: Option<Box<Expr<R>>>,
 }
 
-impl Unparsable for ArgWithDefault {
+impl<R> Unparsable for ArgWithDefault<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
         result.push_str(&self.def.unparse(indent));
