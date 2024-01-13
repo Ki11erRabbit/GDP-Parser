@@ -565,7 +565,7 @@ impl<R> Unparsable for StmtClassDef<R> {
         let mut result = String::new();
 
         for decorator in &self.decorator_list {
-            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
+            result.push_str(&format!("{}@{}\n", SPACING.repeat(indentation_level), decorator.unparse(indentation_level)));
         }
 
         result.push_str(&format!("{}class {}", SPACING.repeat(indentation_level), self.name));
@@ -591,7 +591,7 @@ impl<R> Unparsable for StmtClassDef<R> {
         }
         result.push_str(":\n");
         for stmt in &self.body {
-            result.push_str(&format!("\n{}{}", SPACING.repeat(indentation_level), stmt.unparse(indentation_level + 1)));
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level), stmt.unparse(indentation_level + 1)));
         }
         result
     }
@@ -1289,7 +1289,7 @@ impl<R> Unparsable for StmtTry<R> {
             result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level)));
         }
         for handler in &self.handlers {
-            result.push_str(&format!("{}\n", handler.unparse(indentation_level + 7)));
+            result.push_str(&format!("{}\n", handler.unparse(indentation_level)));
         }
         if !self.orelse.is_empty() {
             result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
@@ -3948,7 +3948,8 @@ impl<R> Unparsable for ExceptHandlerExceptHandler<R> {
         }
         result.push_str(":\n");
         for stmt in &self.body {
-            result.push_str(&stmt.unparse(indent + 1));
+            result.push_str(&SPACING.repeat(indent + 1));
+            result.push_str(&stmt.unparse(indent));
             result.push('\n');
         }
         result
@@ -4700,6 +4701,7 @@ impl<R> Unparsable for Arguments<R> {
             result.push_str(&arg.unparse(indent));
             result.push_str(", ");
         }
+
         for arg in &self.args {
             result.push_str(&arg.unparse(indent));
             result.push_str(", ");
@@ -4717,6 +4719,7 @@ impl<R> Unparsable for Arguments<R> {
             result.push_str(&kwarg.unparse(indent));
             result.push_str(", ");
         }
+        result.pop();
         result.pop();
         result.push(')');
         result
