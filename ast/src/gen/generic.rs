@@ -370,6 +370,42 @@ impl<R> Unparsable for Stmt<R> {
     }
 }
 
+impl<R> Unparsable for &Stmt<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        match self {
+            Stmt::FunctionDef(x) => x.unparse(indentation_level),
+            Stmt::AsyncFunctionDef(x) => x.unparse(indentation_level),
+            Stmt::ClassDef(x) => x.unparse(indentation_level),
+            Stmt::Return(x) => x.unparse(indentation_level),
+            Stmt::Delete(x) => x.unparse(indentation_level),
+            Stmt::Assign(x) => x.unparse(indentation_level),
+            Stmt::TypeAlias(x) => x.unparse(indentation_level),
+            Stmt::AugAssign(x) => x.unparse(indentation_level),
+            Stmt::AnnAssign(x) => x.unparse(indentation_level),
+            Stmt::For(x) => x.unparse(indentation_level),
+            Stmt::AsyncFor(x) => x.unparse(indentation_level),
+            Stmt::While(x) => x.unparse(indentation_level),
+            Stmt::If(x) => x.unparse(indentation_level),
+            Stmt::With(x) => x.unparse(indentation_level),
+            Stmt::AsyncWith(x) => x.unparse(indentation_level),
+            Stmt::Match(x) => x.unparse(indentation_level),
+            Stmt::Raise(x) => x.unparse(indentation_level),
+            Stmt::Try(x) => x.unparse(indentation_level),
+            Stmt::TryStar(x) => x.unparse(indentation_level),
+            Stmt::Assert(x) => x.unparse(indentation_level),
+            Stmt::Import(x) => x.unparse(indentation_level),
+            Stmt::ImportFrom(x) => x.unparse(indentation_level),
+            Stmt::Global(x) => x.unparse(indentation_level),
+            Stmt::Nonlocal(x) => x.unparse(indentation_level),
+            Stmt::Expr(x) => x.unparse(indentation_level),
+            Stmt::Pass(x) => x.unparse(indentation_level),
+            Stmt::Break(x) => x.unparse(indentation_level),
+            Stmt::Continue(x) => x.unparse(indentation_level),
+        }
+    }
+}
+
+
 /// See also [FunctionDef](https://docs.python.org/3/library/ast.html#ast.FunctionDef)
 #[derive(Clone, Debug, PartialEq)]
 pub struct StmtFunctionDef<R = TextRange> {
