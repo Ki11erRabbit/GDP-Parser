@@ -3894,8 +3894,9 @@ impl<R> Unparsable for Comprehension<R> {
         if self.is_async {
             result.push_str("async ");
         }
-        result.push_str(&self.target.unparse(indent));
         result.push_str(" for ");
+        result.push_str(&self.target.unparse(indent));
+        result.push_str(" in ");
         result.push_str(&self.iter.unparse(indent));
         for if_ in &self.ifs {
             result.push_str(" if ");
@@ -4003,7 +4004,7 @@ impl<R> Unparsable for PythonArguments<R> {
             result.push_str(&vararg.unparse(indent));
             result.push_str(", ");
         }
-        result.push_str(" / ");
+        //result.push_str(" / ");
         for arg in &self.kwonlyargs {
             result.push_str(&arg.unparse(indent));
             result.push_str(", ");
@@ -4707,7 +4708,7 @@ impl<R> Unparsable for Arguments<R> {
             result.push_str(&vararg.unparse(indent));
             result.push_str(", ");
         }
-        result.push_str(" / ");
+        //result.push_str(" / ");
         for arg in &self.kwonlyargs {
             result.push_str(&arg.unparse(indent));
             result.push_str(", ");
@@ -4716,6 +4717,7 @@ impl<R> Unparsable for Arguments<R> {
             result.push_str(&kwarg.unparse(indent));
             result.push_str(", ");
         }
+        result.pop();
         result.push(')');
         result
     }
