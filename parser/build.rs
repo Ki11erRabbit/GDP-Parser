@@ -159,6 +159,7 @@ fn gen_phf(out_dir: &Path) {
         .entry("while", "Tok::While")
         .entry("with", "Tok::With")
         .entry("yield", "Tok::Yield")
+        .entry("where", "Tok::Where")
         .build();
     writeln!(
         BufWriter::new(File::create(out_dir.join("keywords.rs")).unwrap()),
