@@ -999,7 +999,7 @@ TypeAliasStatement: ast::Stmt = {
 };
 
 Parameters: ast::Arguments = {
-    <location:@L> "(" <a: (ParameterList<TypedParameter, StarTypedParameter, DoubleStarTypedParameter>)?> ")" <end_location:@R> =>? {
+    <location:@L> "(" <a: (ParameterList<TypedParameter, DependentlyTypedParameter, StarTypedParameter, DoubleStarTypedParameter>)?> ")" <end_location:@R> =>? {
         a.as_ref().map(validate_arguments).transpose()?;
         let args = a
             .unwrap_or_else(|| ast::Arguments::empty(optional_range(location, end_location)));
@@ -1089,18 +1089,27 @@ ParameterDef<ArgType>: ast::ArgWithDefault = {
 
 UntypedParameter: ast::ArgWithDefault = {
     <location:@L> <arg:Identifier> <end_location:@R> => {
-        let def = ast::Arg { arg, annotation: None, type_comment: None, range: (location..end_location).into() };
+        let def = ast::Arg { arg, annotation: None, where_expr: None,type_comment: None, range: (location..end_location).into() };
         ast::ArgWithDefault { def, default: None, range: optional_range(location, end_location) }
     },
 };
 StarUntypedParameter: ast::Arg = {
-    <location:@L> <arg:Identifier> <end_location:@R> => ast::Arg { arg, annotation: None, type_comment: None, range: (location..end_location).into() },
+    <location:@L> <arg:Identifier> <end_location:@R> => ast::Arg { arg, annotation: None, where_expr: None,type_comment: None, range: (location..end_location).into() },
 };
 
 TypedParameter: ast::ArgWithDefault = {
     <location:@L> <arg:Identifier> <a:(":" <Test<"all">>)?> <end_location:@R> => {
         let annotation = a.map(Box::new);
-        let def = ast::Arg { arg, annotation, type_comment: None, range: (location..end_location).into() };
+        let def = ast::Arg { arg, annotation, where_expr: None, type_comment: None, range: (location..end_location).into() };
+        ast::ArgWithDefault { def, default: None, range: optional_range(location, end_location) }
+    },
+};
+
+DependentlyTypedParameter: ast::ArgWithDefault = {
+    <location:@L> <arg:Identifier> <a:(":" <Test<"all">>)> "where" <e:Test<"all">> <end_location:@R> => {
+        let annotation = Some(Box::new(a));
+        let where_expr = Some(Box::new(e));
+        let def = ast::Arg { arg, annotation, where_expr, type_comment: None, range: (location..end_location).into() };
         ast::ArgWithDefault { def, default: None, range: optional_range(location, end_location) }
     },
 };
@@ -1108,14 +1117,14 @@ TypedParameter: ast::ArgWithDefault = {
 StarTypedParameter: ast::Arg = {
     <location:@L> <arg:Identifier> <a:(":" <TestOrStarExpr>)?> <end_location:@R> => {
         let annotation = a.map(Box::new);
-        ast::Arg { arg, annotation, type_comment: None, range: (location..end_location).into() }
+        ast::Arg { arg, annotation, where_expr: None,type_comment: None, range: (location..end_location).into() }
     },
 };
 
 DoubleStarTypedParameter: ast::Arg = {
     <location:@L> <arg:Identifier> <a:(":" <Test<"all">>)?> <end_location:@R> => {
         let annotation = a.map(Box::new);
-        ast::Arg { arg, annotation, type_comment: None, range: (location..end_location).into() }
+        ast::Arg { arg, annotation, where_expr: None,type_comment: None, range: (location..end_location).into() }
     },
 };
 
@@ -1779,6 +1788,7 @@ extern {
         "True" => token::Tok::True,
         "False" => token::Tok::False,
         "None" => token::Tok::None,
+        "where" => token::Tok::Where,
         int => token::Tok::Int { value: <BigInt> },
         float => token::Tok::Float { value: <f64> },
         complex => token::Tok::Complex { real: <f64>, imag: <f64> },

@@ -2481,6 +2481,7 @@ pub fn fold_arg<U, F: Fold<U> + ?Sized>(
     let Arg {
         arg,
         annotation,
+        where_expr,
         type_comment,
         range,
     } = node;
@@ -2488,10 +2489,12 @@ pub fn fold_arg<U, F: Fold<U> + ?Sized>(
     let arg = Foldable::fold(arg, folder)?;
     let annotation = Foldable::fold(annotation, folder)?;
     let type_comment = Foldable::fold(type_comment, folder)?;
+    let where_expr = Foldable::fold(where_expr, folder)?;
     let range = folder.map_user(range, context)?;
     Ok(Arg {
         arg,
         annotation,
+        where_expr,
         type_comment,
         range,
     })

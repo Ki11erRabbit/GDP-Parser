@@ -192,6 +192,8 @@ pub enum Tok {
     Case,
     With,
     Yield,
+    // Gradual Dependent Python Specific
+    Where,
 
     // RustPython specific.
     StartModule,
@@ -321,6 +323,7 @@ impl fmt::Display for Tok {
             With => f.write_str("'with'"),
             Yield => f.write_str("'yield'"),
             ColonEqual => f.write_str("':='"),
+            Where => f.write_str("'where'"),
         }
     }
 }

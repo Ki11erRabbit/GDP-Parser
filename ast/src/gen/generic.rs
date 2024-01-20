@@ -4052,6 +4052,7 @@ pub struct Arg<R = TextRange> {
     pub range: R,
     pub arg: Identifier,
     pub annotation: Option<Box<Expr<R>>>,
+    pub where_expr: Option<Box<Expr<R>>>,
     pub type_comment: Option<String>,
 }
 
