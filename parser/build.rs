@@ -44,7 +44,7 @@ fn requires_lalrpop(source: &str, target: &Path) -> Option<String> {
     let Ok(target) = File::open(target) else {
         return Some("python.rs doesn't exist. regenerate.".to_owned());
     };
-    return None;
+
 
     let sha_prefix = "// sha3: ";
     let sha3_line = if let Some(sha3_line) =

@@ -999,7 +999,7 @@ TypeAliasStatement: ast::Stmt = {
 };
 
 Parameters: ast::Arguments = {
-    <location:@L> "(" <a: (ParameterList<TypedParameter, DependentlyTypedParameter, StarTypedParameter, DoubleStarTypedParameter>)?> ")" <end_location:@R> =>? {
+    <location:@L> "(" <a: (ParameterList<TypedParameter, StarTypedParameter, DoubleStarTypedParameter>)?> ")" <end_location:@R> =>? {
         a.as_ref().map(validate_arguments).transpose()?;
         let args = a
             .unwrap_or_else(|| ast::Arguments::empty(optional_range(location, end_location)));
@@ -1098,9 +1098,10 @@ StarUntypedParameter: ast::Arg = {
 };
 
 TypedParameter: ast::ArgWithDefault = {
-    <location:@L> <arg:Identifier> <a:(":" <Test<"all">>)?> <end_location:@R> => {
+    <location:@L> <arg:Identifier> <a:(":" <Test<"all">>)?> <e:("where" <Test<"all">>)?> <end_location:@R> => {
         let annotation = a.map(Box::new);
-        let def = ast::Arg { arg, annotation, where_expr: None, type_comment: None, range: (location..end_location).into() };
+        let where_expr = e.map(Box::new);
+        let def = ast::Arg { arg, annotation, where_expr, type_comment: None, range: (location..end_location).into() };
         ast::ArgWithDefault { def, default: None, range: optional_range(location, end_location) }
     },
 };
