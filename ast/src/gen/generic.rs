@@ -12,9 +12,41 @@ trait Unparsable {
 
 }
 
+trait GetType {
+    fn get_type(&self) -> Type;
+}
+pub enum Type<R = TextRange> {
+    /// Function is a tuple of arguments and return type
+    Function(Vec<Type>, Box<Type>),
+    /// Other is a type annotation and an expression for the where clause
+    Other(Box<Expr<R>>, Option<Box<Expr<R>>>)
+}
+
+pub trait Environment {
+    fn get_function(&mut self, name: &str) -> Option<&Type>;
+
+    fn add_function(&mut self, name: &str, function: Type);
+
+    fn add_new_iterable(&mut self) -> String;
+
+    fn pop_iterable(&mut self);
+}
+pub fn to_normalization_form<R>(module: ModModule<R>, environment: &mut dyn Environment) -> String {
+    module.normalize(0, environment)
+}
+
+trait Normalizable {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String;
+
+    fn statement_contains_call(&self) -> Option<String> {
+        None
+    }
+}
+
 use std::fmt;
 use std::fmt::format;
 use crate::text_size::TextRange;
+
 #[derive(Clone, Debug, PartialEq, is_macro::Is)]
 pub enum Ast<R = TextRange> {
     #[is(name = "module")]
@@ -38,6 +70,33 @@ pub enum Ast<R = TextRange> {
     TypeIgnore(TypeIgnore<R>),
     TypeParam(TypeParam<R>),
 }
+
+impl<R> Unparsable for Ast<R> {
+    fn unparse(&self, indentation_level: usize) -> String {
+        match self {
+            Ast::Mod(x) => x.unparse(indentation_level),
+            Ast::Stmt(x) => x.unparse(indentation_level),
+            Ast::Expr(x) => x.unparse(indentation_level),
+            Ast::ExprContext(x) => x.unparse(indentation_level),
+            Ast::BoolOp(x) => x.unparse(indentation_level),
+            Ast::Operator(x) => x.unparse(indentation_level),
+            Ast::UnaryOp(x) => x.unparse(indentation_level),
+            Ast::CmpOp(x) => x.unparse(indentation_level),
+            Ast::Comprehension(x) => x.unparse(indentation_level),
+            Ast::ExceptHandler(x) => x.unparse(indentation_level),
+            Ast::Arguments(x) => x.unparse(indentation_level),
+            Ast::Arg(x) => x.unparse(indentation_level),
+            Ast::Keyword(x) => x.unparse(indentation_level),
+            Ast::Alias(x) => x.unparse(indentation_level),
+            Ast::WithItem(x) => x.unparse(indentation_level),
+            Ast::MatchCase(x) => x.unparse(indentation_level),
+            Ast::Pattern(x) => x.unparse(indentation_level),
+            Ast::TypeIgnore(x) => x.unparse(indentation_level),
+            Ast::TypeParam(x) => x.unparse(indentation_level),
+        }
+    }
+}
+
 impl<R> Node for Ast<R> {
     const NAME: &'static str = "AST";
     const FIELD_NAMES: &'static [&'static str] = &[];
@@ -182,6 +241,19 @@ impl<R> Unparsable for ModModule<R> {
         }
         for type_ignore in &self.type_ignores {
             result.push_str(&format!("\n{}", type_ignore.unparse(indentation_level)));
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for ModModule<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level), stmt.to_normalization_form(indentation_level, environment)));
+        }
+        for type_ignore in &self.type_ignores {
+            result.push_str(&format!("\n{}", type_ignore.to_normalization_form(indentation_level, environment)));
         }
         result
     }
@@ -370,37 +442,37 @@ impl<R> Unparsable for Stmt<R> {
     }
 }
 
-impl<R> Unparsable for &Stmt<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for Stmt<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         match self {
-            Stmt::FunctionDef(x) => x.unparse(indentation_level),
-            Stmt::AsyncFunctionDef(x) => x.unparse(indentation_level),
-            Stmt::ClassDef(x) => x.unparse(indentation_level),
-            Stmt::Return(x) => x.unparse(indentation_level),
-            Stmt::Delete(x) => x.unparse(indentation_level),
-            Stmt::Assign(x) => x.unparse(indentation_level),
-            Stmt::TypeAlias(x) => x.unparse(indentation_level),
-            Stmt::AugAssign(x) => x.unparse(indentation_level),
-            Stmt::AnnAssign(x) => x.unparse(indentation_level),
-            Stmt::For(x) => x.unparse(indentation_level),
-            Stmt::AsyncFor(x) => x.unparse(indentation_level),
-            Stmt::While(x) => x.unparse(indentation_level),
-            Stmt::If(x) => x.unparse(indentation_level),
-            Stmt::With(x) => x.unparse(indentation_level),
-            Stmt::AsyncWith(x) => x.unparse(indentation_level),
-            Stmt::Match(x) => x.unparse(indentation_level),
-            Stmt::Raise(x) => x.unparse(indentation_level),
-            Stmt::Try(x) => x.unparse(indentation_level),
-            Stmt::TryStar(x) => x.unparse(indentation_level),
-            Stmt::Assert(x) => x.unparse(indentation_level),
-            Stmt::Import(x) => x.unparse(indentation_level),
-            Stmt::ImportFrom(x) => x.unparse(indentation_level),
-            Stmt::Global(x) => x.unparse(indentation_level),
-            Stmt::Nonlocal(x) => x.unparse(indentation_level),
-            Stmt::Expr(x) => x.unparse(indentation_level),
-            Stmt::Pass(x) => x.unparse(indentation_level),
-            Stmt::Break(x) => x.unparse(indentation_level),
-            Stmt::Continue(x) => x.unparse(indentation_level),
+            Stmt::FunctionDef(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::AsyncFunctionDef(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::ClassDef(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Return(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Delete(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Assign(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::TypeAlias(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::AugAssign(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::AnnAssign(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::For(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::AsyncFor(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::While(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::If(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::With(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::AsyncWith(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Match(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Raise(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Try(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::TryStar(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Assert(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Import(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::ImportFrom(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Global(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Nonlocal(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Expr(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Pass(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Break(x) => x.to_normalization_form(indentation_level, environment),
+            Stmt::Continue(x) => x.to_normalization_form(indentation_level, environment),
         }
     }
 }
@@ -415,9 +487,24 @@ pub struct StmtFunctionDef<R = TextRange> {
     pub body: Vec<Stmt<R>>,
     pub decorator_list: Vec<Expr<R>>,
     pub returns: Option<Box<Expr<R>>>,
+    pub where_expr: Option<Box<Expr<R>>>,
     pub type_comment: Option<String>,
     pub type_params: Vec<TypeParam<R>>,
 }
+
+impl<R> GetType for StmtFunctionDef<R> {
+    fn get_type(&self) -> Type {
+        let mut arg_types = Vec::new();
+        for arg in &self.args.args {
+            arg_types.push(arg.def.get_type());
+        }
+        match self.returns {
+            Some(ref returns) => Type::Function(arg_types, Box::new(Type::Other(Box::new(**returns.clone()), self.where_expr.clone()))),
+            None => Type::Function(arg_types, Box::new(Type::Other(Box::new(Expr::Name(ExprName::new(Identifier::new("Any"),ExprContext::Load))), self.where_expr.clone()))) ,
+        }
+    }
+}
+
 
 impl<R> Unparsable for StmtFunctionDef<R> {
     fn unparse(&self, indentation_level: usize) -> String {
@@ -455,6 +542,48 @@ impl<R> Unparsable for StmtFunctionDef<R> {
     }
 }
 
+impl<R> Normalizable for StmtFunctionDef<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        for decorator in &self.decorator_list {
+            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.to_normalization_form(indentation_level, environment)));
+        }
+
+        result.push_str(&format!("{}def {}", SPACING.repeat(indentation_level), self.name));
+        if self.type_params.len() > 0 {
+            result.push_str("[");
+            for (i, type_param) in self.type_params.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&type_param.to_normalization_form(indentation_level, environment));
+            }
+            result.push_str("]");
+        }
+        result.push('(');
+        result.push_str(&self.args.to_normalization_form(indentation_level, environment));
+        result.push(')');
+        if let Some(returns) = &self.returns {
+            result.push_str(&format!(" -> {}", returns.to_normalization_form(indentation_level, environment)));
+        }
+        result.push_str(":\n");
+
+        environment.add_function(&self.name.as_ref(), self.get_type());
+
+
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+        }
+
+        result
+    }
+
+}
+
 impl<R> Node for StmtFunctionDef<R> {
     const NAME: &'static str = "FunctionDef";
     const FIELD_NAMES: &'static [&'static str] = &[
@@ -487,6 +616,7 @@ pub struct StmtAsyncFunctionDef<R = TextRange> {
     pub body: Vec<Stmt<R>>,
     pub decorator_list: Vec<Expr<R>>,
     pub returns: Option<Box<Expr<R>>>,
+    pub where_expr: Option<Box<Expr<R>>>,
     pub type_comment: Option<String>,
     pub type_params: Vec<TypeParam<R>>,
 }
@@ -527,6 +657,44 @@ impl<R> Unparsable for StmtAsyncFunctionDef<R> {
     }
 }
 
+impl<R> Normalizable for StmtAsyncFunctionDef<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        for decorator in &self.decorator_list {
+            result.push_str(&format!("{}@{}", SPACING.repeat(indentation_level), decorator.to_normalization_form(indentation_level, environment)));
+        }
+
+        result.push_str(&format!("{}async def {}", SPACING.repeat(indentation_level), self.name));
+        if self.type_params.len() > 0 {
+            result.push_str("[");
+            for (i, type_param) in self.type_params.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&type_param.to_normalization_form(indentation_level, environment));
+            }
+            result.push_str("]");
+        }
+        result.push('(');
+        result.push_str(&self.args.to_normalization_form(indentation_level, environment));
+        result.push(')');
+        if let Some(returns) = &self.returns {
+            result.push_str(&format!(" -> {}", returns.to_normalization_form(indentation_level, environment)));
+        }
+        result.push_str(":\n");
+
+        environment.add_function(&self.name.as_ref(), self.get_type());
+
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+        }
+        result
+    }
+}
 
 
 impl<R> Node for StmtAsyncFunctionDef<R> {
@@ -601,6 +769,43 @@ impl<R> Unparsable for StmtClassDef<R> {
     }
 }
 
+impl<R> Normalizable for StmtClassDef<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        for decorator in &self.decorator_list {
+            result.push_str(&format!("{}@{}\n", SPACING.repeat(indentation_level), decorator.to_normalization_form(indentation_level, environment)));
+        }
+
+        result.push_str(&format!("{}class {}", SPACING.repeat(indentation_level), self.name));
+        if !self.bases.is_empty() {
+            result.push_str("(");
+            for (i, base) in self.bases.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&base.to_normalization_form(indentation_level, environment));
+            }
+            result.push_str(")");
+        }
+        if !self.keywords.is_empty() {
+            result.push_str("(");
+            for (i, keyword) in self.keywords.iter().enumerate() {
+                if i != 0 {
+                    result.push_str(", ");
+                }
+                result.push_str(&keyword.to_normalization_form(indentation_level, environment));
+            }
+            result.push_str(")");
+        }
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level), stmt.to_normalization_form(indentation_level + 1, environment)));
+        }
+        result
+    }
+}
+
 impl<R> Node for StmtClassDef<R> {
     const NAME: &'static str = "ClassDef";
     const FIELD_NAMES: &'static [&'static str] = &[
@@ -641,16 +846,33 @@ impl<R> Unparsable for StmtReturn<R> {
     }
 }
 
-impl<R> Unparsable for &StmtReturn<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for StmtReturn<R> {
+
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let mut result = String::new();
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
         result.push_str(&format!("{}return", SPACING.repeat(indentation_level)));
         if let Some(value) = &self.value {
-            result.push_str(&format!(" {}", value.unparse(indentation_level)));
+            result.push_str(&format!(" {}", value.to_normalization_form(indentation_level, environment)));
         }
         result
     }
+    fn statement_contains_call(&self) -> Option<String> {
+        if let Some(value) = &self.value {
+            return value.statement_contains_call();
+        }
+        None
+    }
+
+
+
 }
+
 
 impl<R> Node for StmtReturn<R> {
     const NAME: &'static str = "Return";
@@ -688,18 +910,33 @@ impl<R> Unparsable for StmtDelete<R> {
     }
 }
 
-impl<R> Unparsable for &StmtDelete<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for StmtDelete<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let mut result = String::new();
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
         result.push_str(&format!("{}del ", SPACING.repeat(indentation_level)));
         for (i, target) in self.targets.iter().enumerate() {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&target.unparse(indentation_level));
+            result.push_str(&target.to_normalization_form(indentation_level, environment));
         }
         result
     }
+    fn statement_contains_call(&self) -> Option<String> {
+        for target in &self.targets {
+            if let Some(call) = target.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        None
+    }
+
 }
 
 impl<R> Node for StmtDelete<R> {
@@ -743,21 +980,34 @@ impl<R> Unparsable for StmtAssign<R> {
     }
 }
 
-impl<R> Unparsable for &StmtAssign<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for StmtAssign {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let mut result = String::new();
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
         for (i, target) in self.targets.iter().enumerate() {
             if i != 0 {
                 result.push_str(", ");
             }
-            result.push_str(&target.unparse(indentation_level));
+            result.push_str(&target.to_normalization_form(indentation_level, environment));
         }
         if let Some(type_comment) = &self.type_comment {
             result.push_str(&format!(": {}", type_comment));
         }
-        result.push_str(&format!(" = {}", self.value.unparse(indentation_level)));
+        result.push_str(&format!(" = {}", self.value.to_normalization_form(indentation_level, environment)));
         result
     }
+    fn statement_contains_call(&self) -> Option<String> {
+        if let Some(call) = self.value.statement_contains_call() {
+            return Some(call);
+        }
+        None
+    }
+
 }
 
 
@@ -804,23 +1054,36 @@ impl<R> Unparsable for StmtTypeAlias<R> {
     }
 }
 
-impl<R> Unparsable for &StmtTypeAlias<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for StmtTypeAlias<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let mut result = String::new();
-        result.push_str(&format!("{}type {}", SPACING.repeat(indentation_level), self.name));
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
+        result.push_str(&format!("{}type {}", SPACING.repeat(indentation_level), self.name.to_normalization_form(indentation_level, environment)));
         if self.type_params.len() > 0 {
             result.push_str("[");
             for (i, type_param) in self.type_params.iter().enumerate() {
                 if i != 0 {
                     result.push_str(", ");
                 }
-                result.push_str(&type_param.unparse(indentation_level));
+                result.push_str(&type_param.to_normalization_form(indentation_level, environment));
             }
             result.push_str("]");
         }
-        result.push_str(&format!(" = {}", self.value.unparse(indentation_level)));
+        result.push_str(&format!(" = {}", self.value.to_normalization_form(indentation_level, environment)));
         result
     }
+    fn statement_contains_call(&self) -> Option<String> {
+        if let Some(call) = self.value.statement_contains_call() {
+            return Some(call);
+        }
+        None
+    }
+
 }
 
 
@@ -855,10 +1118,25 @@ impl<R> Unparsable for StmtAugAssign<R> {
     }
 }
 
-impl<R> Unparsable for &StmtAugAssign<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
-        format!("{}{} {}= {}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level), self.op.unparse(indentation_level), self.value.unparse(indentation_level))
+impl<R> Normalizable for StmtAugAssign<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
+        result.push_str(&format!("{}{} {}= {}", SPACING.repeat(indentation_level), self.target.to_normalization_form(indentation_level, environment), self.op.to_normalization_form(indentation_level, environment), self.value.to_normalization_form(indentation_level, environment)));
+        result
     }
+    fn statement_contains_call(&self) -> Option<String> {
+        if let Some(call) = self.value.statement_contains_call() {
+            return Some(call);
+        }
+        None
+    }
+
 }
 
 
@@ -902,19 +1180,32 @@ impl<R> Unparsable for StmtAnnAssign<R> {
     }
 }
 
-impl<R> Unparsable for &StmtAnnAssign<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for StmtAnnAssign<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let mut result = String::new();
-        result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), self.target.unparse(indentation_level)));
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
+        result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), self.target.to_normalization_form(indentation_level, environment)));
 
         result.push_str(": ");
 
-        result.push_str(&self.annotation.unparse(indentation_level));
+        result.push_str(&self.annotation.to_normalization_form(indentation_level, environment));
         if let Some(value) = &self.value {
-            result.push_str(&format!(" = {}", value.unparse(indentation_level)));
+            result.push_str(&format!(" = {}", value.to_normalization_form(indentation_level, environment)));
         }
         result
     }
+    fn statement_contains_call(&self) -> Option<String> {
+        if let Some(call) = self.value.statement_contains_call() {
+            return Some(call);
+        }
+        None
+    }
+
 }
 
 impl<R> Node for StmtAnnAssign<R> {
@@ -957,6 +1248,31 @@ impl<R> Unparsable for StmtFor<R> {
             result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
             for stmt in &self.orelse {
                 result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+            }
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for StmtFor<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+
+
+        //TODO: Add a proper way to insert a runtime check to check for totality of iterable
+
+        result.push_str(&format!("{}for {} in {}:\n", SPACING.repeat(indentation_level), self.target.to_normalization_form(indentation_level, environment), self.iter.to_normalization_form(indentation_level, environment)));
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!(" # type: {}\n", type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
             }
         }
         result
@@ -1010,6 +1326,30 @@ impl<R> Unparsable for StmtAsyncFor<R> {
     }
 }
 
+impl<R> Normalizable for StmtAsyncFor<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+
+
+        //TODO: Add a proper way to insert a runtime check to check for totality of iterable
+
+        result.push_str(&format!("{}async for {} in {}:\n", SPACING.repeat(indentation_level), self.target.to_normalization_form(indentation_level, environment), self.iter.to_normalization_form(indentation_level, environment)));
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!(" # type: {}\n", type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+            }
+        }
+        result
+    }
+}
 impl<R> Node for StmtAsyncFor<R> {
     const NAME: &'static str = "AsyncFor";
     const FIELD_NAMES: &'static [&'static str] =
@@ -1053,6 +1393,23 @@ impl<R> Unparsable for StmtWhile<R> {
     }
 }
 
+impl<R> Normalizable for StmtWhile<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}while {}:\n", SPACING.repeat(indentation_level), self.test.to_normalization_form(indentation_level, environment)));
+
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+            }
+        }
+        result
+    }
+}
 
 
 impl<R> Node for StmtWhile<R> {
@@ -2617,6 +2974,17 @@ pub struct ExprName<R = TextRange> {
     pub ctx: ExprContext,
 }
 
+impl<R> ExprName<R> {
+    pub fn new(id: Identifier, ctx: ExprContext) -> Self {
+        Self {
+            range: TextRange::default(),
+            id,
+            ctx
+        }
+    }
+
+}
+
 impl<R> Unparsable for ExprName<R> {
     fn unparse(&self, _: usize) -> String {
         let mut result = String::new();
@@ -4064,6 +4432,32 @@ impl<R> Unparsable for Arg<R> {
             result.push_str(": ");
             result.push_str(&annotation.unparse(indent));
         }
+        if let Some(where_expr) = &self.where_expr {
+            result.push_str(" where ");
+            result.push_str(&where_expr.unparse(indent));
+        }
+        result
+    }
+}
+
+impl<R> GetType for Arg<R> {
+    fn get_type(&self) -> Type {
+        self.annotation.as_ref().map(|expr| Type::Other(Box::new(**expr.clone()), self.where_expr.clone()));
+        match self.annotation.as_ref() {
+            Some(expr) => Type::Other(Box::new(**expr.clone()), self.where_expr.clone()),
+            None => Type::Other(Box::new(Expr::Name(ExprName::new(Identifier::new("Any"),ExprContext::Load))), self.where_expr.clone()),
+        }
+    }
+}
+
+impl<R> Normalizable for Arg<R> {
+    fn normalize(&mut self, indent: usize, _: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}", self.arg));
+        if let Some(annotation) = &self.annotation {
+            result.push_str(": ");
+            result.push_str(&annotation.unparse(indent));
+        }
         result
     }
 }
@@ -4698,6 +5092,29 @@ pub struct Arguments<R = TextRange> {
     pub kwarg: Option<Box<Arg<R>>>,
 }
 
+impl<R> Arguments<R> {
+    pub fn get_types(&self) -> Vec<Type> {
+        let mut result = Vec::new();
+        for arg in &self.posonlyargs {
+            result.push(arg.def.get_type());
+        }
+        for arg in &self.args {
+            result.push(arg.def.get_type());
+        }
+        if let Some(vararg) = &self.vararg {
+            result.push(vararg.get_type());
+        }
+        for arg in &self.kwonlyargs {
+            result.push(arg.def.get_type());
+        }
+        if let Some(kwarg) = &self.kwarg {
+            result.push(kwarg.get_type());
+        }
+        result
+    }
+
+}
+
 impl<R> Unparsable for Arguments<R> {
     fn unparse(&self, indent: usize) -> String {
         let mut result = String::new();
@@ -4721,6 +5138,37 @@ impl<R> Unparsable for Arguments<R> {
         }
         if let Some(kwarg) = &self.kwarg {
             result.push_str(&kwarg.unparse(indent));
+            result.push_str(", ");
+        }
+        result.pop();
+        result.pop();
+        result
+    }
+}
+
+impl <R> Normalizable for Arguments<R> {
+    fn normalize(&self, indentation_level: usize, env: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        for arg in &self.posonlyargs {
+            result.push_str(&arg.normalize(indentation_level, env));
+            result.push_str(", ");
+        }
+
+        for arg in &self.args {
+            result.push_str(&arg.normalize(indentation_level, env));
+            result.push_str(", ");
+        }
+        if let Some(vararg) = &self.vararg {
+            result.push_str(&vararg.normalize(indentation_level, env));
+            result.push_str(", ");
+        }
+        //result.push_str(" / ");
+        for arg in &self.kwonlyargs {
+            result.push_str(&arg.normalize(indentation_level, env));
+            result.push_str(", ");
+        }
+        if let Some(kwarg) = &self.kwarg {
+            result.push_str(&kwarg.normalize(indentation_level, env));
             result.push_str(", ");
         }
         result.pop();
@@ -4754,6 +5202,18 @@ impl<R> Unparsable for ArgWithDefault<R> {
         if let Some(default) = &self.default {
             result.push_str("=");
             result.push_str(&default.unparse(indent));
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for ArgWithDefault<R> {
+    fn normalize(&self, indentation_level: usize, env: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.def.normalize(indentation_level, env));
+        if let Some(default) = &self.default {
+            result.push_str("=");
+            result.push_str(&default.normalize(indentation_level, env));
         }
         result
     }

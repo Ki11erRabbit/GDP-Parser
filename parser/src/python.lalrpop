@@ -966,15 +966,16 @@ WithItem<Goal>: ast::WithItem = {
 };
 
 FuncDef: ast::Stmt = {
-    <decorator_list:Decorator*> <location:@L> <is_async:"async"?> "def" <name:Identifier> <type_params:TypeParamList?> <args:Parameters> <r:("->" <Test<"all">>)?> ":" <body:Suite> => {
+    <decorator_list:Decorator*> <location:@L> <is_async:"async"?> "def" <name:Identifier> <type_params:TypeParamList?> <args:Parameters> <r:("->" <Test<"all">>)?> <e:("where" <Test<"all">>)?> ":" <body:Suite> => {
         let args = Box::new(args);
         let returns = r.map(|x| Box::new(x));
+        let where_expr = e.map(|x| Box::new(x));
         let end_location = body.last().unwrap().end();
         let type_comment = None;
         if is_async.is_some() {
-            ast::StmtAsyncFunctionDef { name, args, body, decorator_list, returns, type_comment, type_params: type_params.unwrap_or_default(), range: (location..end_location).into() }.into()
+            ast::StmtAsyncFunctionDef { name, args, body, decorator_list, returns, where_expr, type_comment, type_params: type_params.unwrap_or_default(), range: (location..end_location).into() }.into()
         } else {
-            ast::StmtFunctionDef { name, args, body, decorator_list, returns, type_comment, type_params: type_params.unwrap_or_default(), range: (location..end_location).into() }.into()
+            ast::StmtFunctionDef { name, args, body, decorator_list, returns, where_expr, type_comment, type_params: type_params.unwrap_or_default(), range: (location..end_location).into() }.into()
         }
     },
 };
