@@ -29,6 +29,7 @@ pub trait Environment {
 
     fn add_new_iterable(&mut self) -> String;
 
+    fn get_top_iterable(&mut self) -> String;
     fn pop_iterable(&mut self);
 }
 pub fn to_normalization_form<R>(module: ModModule<R>, environment: &mut dyn Environment) -> String {
@@ -38,9 +39,10 @@ pub fn to_normalization_form<R>(module: ModModule<R>, environment: &mut dyn Envi
 trait Normalizable {
     fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String;
 
-    fn statement_contains_call(&self) -> Option<String> {
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
         None
     }
+
 }
 
 use std::fmt;
@@ -862,7 +864,7 @@ impl<R> Normalizable for StmtReturn<R> {
         }
         result
     }
-    fn statement_contains_call(&self) -> Option<String> {
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
         if let Some(value) = &self.value {
             return value.statement_contains_call();
         }
@@ -928,7 +930,7 @@ impl<R> Normalizable for StmtDelete<R> {
         }
         result
     }
-    fn statement_contains_call(&self) -> Option<String> {
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
         for target in &self.targets {
             if let Some(call) = target.statement_contains_call() {
                 return Some(call);
@@ -1001,7 +1003,7 @@ impl<R> Normalizable for StmtAssign {
         result.push_str(&format!(" = {}", self.value.to_normalization_form(indentation_level, environment)));
         result
     }
-    fn statement_contains_call(&self) -> Option<String> {
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
         if let Some(call) = self.value.statement_contains_call() {
             return Some(call);
         }
@@ -1077,7 +1079,7 @@ impl<R> Normalizable for StmtTypeAlias<R> {
         result.push_str(&format!(" = {}", self.value.to_normalization_form(indentation_level, environment)));
         result
     }
-    fn statement_contains_call(&self) -> Option<String> {
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
         if let Some(call) = self.value.statement_contains_call() {
             return Some(call);
         }
@@ -1130,7 +1132,7 @@ impl<R> Normalizable for StmtAugAssign<R> {
         result.push_str(&format!("{}{} {}= {}", SPACING.repeat(indentation_level), self.target.to_normalization_form(indentation_level, environment), self.op.to_normalization_form(indentation_level, environment), self.value.to_normalization_form(indentation_level, environment)));
         result
     }
-    fn statement_contains_call(&self) -> Option<String> {
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
         if let Some(call) = self.value.statement_contains_call() {
             return Some(call);
         }
@@ -1454,6 +1456,24 @@ impl<R> Unparsable for StmtIf<R> {
     }
 }
 
+impl<R> Normalizable for StmtIf<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}if {}", SPACING.repeat(indentation_level), self.test.to_normalization_form(indentation_level, environment)));
+        result.push_str(":\n");
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+            }
+        }
+        result
+    }
+}
+
 
 impl<R> Node for StmtIf<R> {
     const NAME: &'static str = "If";
@@ -1495,6 +1515,32 @@ impl<R> Unparsable for StmtWith<R> {
         }
         for stmt in &self.body {
             result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.unparse(indentation_level + 1)));
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for StmtWith<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        for item in &self.items {
+            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), item.to_normalization_form(indentation_level, environment)));
+        }
+
+        result.push_str(&format!("{}with ", SPACING.repeat(indentation_level)));
+        for (i, item) in self.items.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&item.to_normalization_form(indentation_level, environment));
+        }
+        result.push_str(":\n");
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
         }
         result
     }
@@ -1545,6 +1591,32 @@ impl<R> Unparsable for StmtAsyncWith<R> {
     }
 }
 
+impl<R> Normalizable for StmtAsyncWith<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        for item in &self.items {
+            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), item.to_normalization_form(indentation_level, environment)));
+        }
+
+        result.push_str(&format!("{}async with ", SPACING.repeat(indentation_level)));
+        for (i, item) in self.items.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&item.to_normalization_form(indentation_level, environment));
+        }
+        result.push_str(":\n");
+        if let Some(type_comment) = &self.type_comment {
+            result.push_str(&format!("{}# type: {}\n", SPACING.repeat(indentation_level + 1), type_comment));
+        }
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level + 1, environment)));
+        }
+        result
+    }
+}
+
 impl<R> Node for StmtAsyncWith<R> {
     const NAME: &'static str = "AsyncWith";
     const FIELD_NAMES: &'static [&'static str] = &["items", "body", "type_comment"];
@@ -1580,6 +1652,32 @@ impl<R> Unparsable for StmtMatch<R> {
     }
 }
 
+impl<R> Normalizable for StmtMatch<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        match self.statement_contains_call() {
+            Some(call) => {
+                result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+            },
+            None => {}
+        }
+        result.push_str(&format!("{}match {}", SPACING.repeat(indentation_level), self.subject.to_normalization_form(indentation_level, environment)));
+        result.push_str(":\n");
+        for case in &self.cases {
+            result.push_str(&format!("{}\n", case.to_normalization_form(indentation_level, environment)));
+        }
+        result
+
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        if let Some(call) = self.subject.statement_contains_call() {
+            return Some(call);
+        }
+        None
+    }
+}
+
 impl<R> Node for StmtMatch<R> {
     const NAME: &'static str = "Match";
     const FIELD_NAMES: &'static [&'static str] = &["subject", "cases"];
@@ -1612,6 +1710,21 @@ impl<R> Unparsable for StmtRaise<R> {
         }
         if let Some(cause) = &self.cause {
             result.push_str(&format!(" from {}", cause.unparse(indentation_level)));
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for StmtRaise<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        result.push_str(&format!("{}raise", SPACING.repeat(indentation_level)));
+        if let Some(exc) = &self.exc {
+            result.push_str(&format!(" {}", exc.to_normalization_form(indentation_level, environment)));
+        }
+        if let Some(cause) = &self.cause {
+            result.push_str(&format!(" from {}", cause.to_normalization_form(indentation_level, environment)));
         }
         result
     }
@@ -1668,6 +1781,60 @@ impl<R> Unparsable for StmtTry<R> {
     }
 }
 
+impl<R> Normalizable for StmtTry<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        if let Some(call) = self.statement_contains_call() {
+            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+        }
+
+        result.push_str(&format!("{}try:\n", SPACING.repeat(indentation_level)));
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+        }
+        for handler in &self.handlers {
+            result.push_str(&format!("{}\n", handler.to_normalization_form(indentation_level, environment)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+            }
+        }
+        if !self.finalbody.is_empty() {
+            result.push_str(&format!("{}finally:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.finalbody {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+            }
+        }
+        result
+    }
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        for stmt in &self.body {
+            if let Some(call) = stmt.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        for handler in &self.handlers {
+            if let Some(call) = handler.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        for stmt in &self.orelse {
+            if let Some(call) = stmt.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        for stmt in &self.finalbody {
+            if let Some(call) = stmt.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        None
+    }
+}
+
 impl<R> Node for StmtTry<R> {
     const NAME: &'static str = "Try";
     const FIELD_NAMES: &'static [&'static str] = &["body", "handlers", "orelse", "finalbody"];
@@ -1719,6 +1886,61 @@ impl<R> Unparsable for StmtTryStar<R> {
     }
 }
 
+impl<R> Normalizable for StmtTryStar<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        if let Some(call) = self.statement_contains_call() {
+            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), create_function_hijack(environment, call)));
+        }
+
+        result.push_str(&format!("{}try:\n", SPACING.repeat(indentation_level)));
+        for stmt in &self.body {
+            result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+        }
+        for handler in &self.handlers {
+            result.push_str(&format!("{}\n", handler.to_normalization_form(indentation_level, environment)));
+        }
+        if !self.orelse.is_empty() {
+            result.push_str(&format!("{}else:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.orelse {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+            }
+        }
+        if !self.finalbody.is_empty() {
+            result.push_str(&format!("{}finally:\n", SPACING.repeat(indentation_level)));
+            for stmt in &self.finalbody {
+                result.push_str(&format!("{}{}\n", SPACING.repeat(indentation_level + 1), stmt.to_normalization_form(indentation_level, environment)));
+            }
+        }
+        result
+    }
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        for stmt in &self.body {
+            if let Some(call) = stmt.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        for handler in &self.handlers {
+            if let Some(call) = handler.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        for stmt in &self.orelse {
+            if let Some(call) = stmt.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        for stmt in &self.finalbody {
+            if let Some(call) = stmt.statement_contains_call() {
+                return Some(call);
+            }
+        }
+        None
+    }
+
+}
+
 impl<R> Node for StmtTryStar<R> {
     const NAME: &'static str = "TryStar";
     const FIELD_NAMES: &'static [&'static str] = &["body", "handlers", "orelse", "finalbody"];
@@ -1748,6 +1970,18 @@ impl<R> Unparsable for StmtAssert<R> {
         result.push_str(&format!("{}assert {}", SPACING.repeat(indentation_level), self.test.unparse(indentation_level)));
         if let Some(msg) = &self.msg {
             result.push_str(&format!(" {}", msg.unparse(indentation_level)));
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for StmtAssert<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        result.push_str(&format!("{}assert {}", SPACING.repeat(indentation_level), self.test.to_normalization_form(indentation_level, environment)));
+        if let Some(msg) = &self.msg {
+            result.push_str(&format!(" {}", msg.to_normalization_form(indentation_level, environment)));
         }
         result
     }
@@ -1787,6 +2021,26 @@ impl<R> Unparsable for StmtImport<R> {
         }
         result
     }
+}
+
+impl<R> Normalizable for StmtImport<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        for name in &self.names {
+            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), name.to_normalization_form(indentation_level, environment)));
+        }
+
+        result.push_str(&format!("{}import ", SPACING.repeat(indentation_level)));
+        for (i, name) in self.names.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&name.to_normalization_form(indentation_level, environment));
+        }
+        result
+    }
+
 }
 
 impl<R> Node for StmtImport<R> {
@@ -1834,6 +2088,27 @@ impl<R> Unparsable for StmtImportFrom<R> {
     }
 }
 
+impl<R> Normalizable for StmtImportFrom<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+
+        if let Some(module) = &self.module {
+            result.push_str(&format!("{}{}", SPACING.repeat(indentation_level), module.to_normalization_form(indentation_level, environment)));
+        }
+        /*if let Some(level) = &self.level {
+            result.push_str(&format!("{}.", level));
+        }*/
+        result.push_str(" import ");
+        for (i, name) in self.names.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&name.to_normalization_form(indentation_level, environment));
+        }
+        result
+    }
+}
+
 impl<R> Node for StmtImportFrom<R> {
     const NAME: &'static str = "ImportFrom";
     const FIELD_NAMES: &'static [&'static str] = &["module", "names", "level"];
@@ -1858,6 +2133,20 @@ pub struct StmtGlobal<R = TextRange> {
 
 impl<R> Unparsable for StmtGlobal<R> {
     fn unparse(&self, indentation_level: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}global ", SPACING.repeat(indentation_level)));
+        for (i, name) in self.names.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&format!("{}", name));
+        }
+        result
+    }
+}
+
+impl<R> Normalizable for StmtGlobal<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}global ", SPACING.repeat(indentation_level)));
         for (i, name) in self.names.iter().enumerate() {
@@ -1906,6 +2195,20 @@ impl<R> Unparsable for StmtNonlocal<R> {
     }
 }
 
+impl<R> Normalizable for StmtNonlocal<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}nonlocal ", SPACING.repeat(indentation_level)));
+        for (i, name) in self.names.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&format!("{}", name));
+        }
+        result
+    }
+}
+
 impl<R> Node for StmtNonlocal<R> {
     const NAME: &'static str = "Nonlocal";
     const FIELD_NAMES: &'static [&'static str] = &["names"];
@@ -1933,6 +2236,16 @@ impl<R> Unparsable for StmtExpr<R> {
         let mut result = String::new();
         result.push_str(&self.value.unparse(indentation_level));
         result
+    }
+}
+
+impl<R> Normalizable for StmtExpr<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        self.value.to_normalization_form(indentation_level, environment)
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        self.value.statement_contains_call()
     }
 }
 
@@ -1965,6 +2278,13 @@ impl<R> Unparsable for StmtPass<R> {
     }
 }
 
+impl<R> Normalizable for StmtPass<R> {
+    fn normalize(&self, indentation_level: usize, _: &mut dyn Environment) -> String {
+        format!("{}pass", SPACING.repeat(indentation_level))
+    }
+
+}
+
 impl<R> Node for StmtPass<R> {
     const NAME: &'static str = "Pass";
     const FIELD_NAMES: &'static [&'static str] = &[];
@@ -1994,6 +2314,13 @@ impl<R> Unparsable for StmtBreak<R> {
     }
 }
 
+impl<R> Normalizable for StmtBreak<R> {
+    fn normalize(&self, indentation_level: usize, _: &mut dyn Environment) -> String {
+        format!("{}break", SPACING.repeat(indentation_level))
+    }
+
+}
+
 impl<R> Node for StmtBreak<R> {
     const NAME: &'static str = "Break";
     const FIELD_NAMES: &'static [&'static str] = &[];
@@ -2020,6 +2347,12 @@ impl<R> Unparsable for StmtContinue<R> {
         let mut result = String::new();
         result.push_str(&format!("{}continue", SPACING.repeat(indentation_level)));
         result
+    }
+}
+
+impl<R> Normalizable for StmtContinue<R> {
+    fn normalize(&self, indentation_level: usize, _: &mut dyn Environment) -> String {
+        format!("{}continue", SPACING.repeat(indentation_level))
     }
 }
 
@@ -2137,39 +2470,47 @@ impl<R> Unparsable for Expr<R> {
     }
 }
 
-impl<R> Unparsable for &Expr<R> {
-    fn unparse(&self, indentation_level: usize) -> String {
+impl<R> Normalizable for Expr<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
         let indentation_level = 0;
         match self {
-            Expr::BoolOp(expr) => expr.unparse(indentation_level),
-            Expr::NamedExpr(expr) => expr.unparse(indentation_level),
-            Expr::BinOp(expr) => expr.unparse(indentation_level),
-            Expr::UnaryOp(expr) => expr.unparse(indentation_level),
-            Expr::Lambda(expr) => expr.unparse(indentation_level),
-            Expr::IfExp(expr) => expr.unparse(indentation_level),
-            Expr::Dict(expr) => expr.unparse(indentation_level),
-            Expr::Set(expr) => expr.unparse(indentation_level),
-            Expr::ListComp(expr) => expr.unparse(indentation_level),
-            Expr::SetComp(expr) => expr.unparse(indentation_level),
-            Expr::DictComp(expr) => expr.unparse(indentation_level),
-            Expr::GeneratorExp(expr) => expr.unparse(indentation_level),
-            Expr::Await(expr) => expr.unparse(indentation_level),
-            Expr::Yield(expr) => expr.unparse(indentation_level),
-            Expr::YieldFrom(expr) => expr.unparse(indentation_level),
-            Expr::Compare(expr) => expr.unparse(indentation_level),
-            Expr::Call(expr) => expr.unparse(indentation_level),
-            Expr::FormattedValue(expr) => expr.unparse(indentation_level),
-            Expr::JoinedStr(expr) => expr.unparse(indentation_level),
-            Expr::Constant(expr) => expr.unparse(indentation_level),
-            Expr::Attribute(expr) => expr.unparse(indentation_level),
-            Expr::Subscript(expr) => expr.unparse(indentation_level),
-            Expr::Starred(expr) => expr.unparse(indentation_level),
-            Expr::Name(expr) => expr.unparse(indentation_level),
-            Expr::List(expr) => expr.unparse(indentation_level),
-            Expr::Tuple(expr) => expr.unparse(indentation_level),
-            Expr::Slice(expr) => expr.unparse(indentation_level),
+            Expr::BoolOp(expr) => expr.normalize(indentation_level, environment),
+            Expr::NamedExpr(expr) => expr.normalize(indentation_level, environment),
+            Expr::BinOp(expr) => expr.normalize(indentation_level, environment),
+            Expr::UnaryOp(expr) => expr.normalize(indentation_level, environment),
+            Expr::Lambda(expr) => expr.normalize(indentation_level, environment),
+            Expr::IfExp(expr) => expr.normalize(indentation_level, environment),
+            Expr::Dict(expr) => expr.normalize(indentation_level, environment),
+            Expr::Set(expr) => expr.normalize(indentation_level, environment),
+            Expr::ListComp(expr) => expr.normalize(indentation_level, environment),
+            Expr::SetComp(expr) => expr.normalize(indentation_level, environment),
+            Expr::DictComp(expr) => expr.normalize(indentation_level, environment),
+            Expr::GeneratorExp(expr) => expr.normalize(indentation_level, environment),
+            Expr::Await(expr) => expr.normalize(indentation_level, environment),
+            Expr::Yield(expr) => expr.normalize(indentation_level, environment),
+            Expr::YieldFrom(expr) => expr.normalize(indentation_level, environment),
+            Expr::Compare(expr) => expr.normalize(indentation_level, environment),
+            Expr::Call(expr) => expr.normalize(indentation_level, environment),
+            Expr::FormattedValue(expr) => expr.normalize(indentation_level, environment),
+            Expr::JoinedStr(expr) => expr.normalize(indentation_level, environment),
+            Expr::Constant(expr) => expr.normalize(indentation_level, environment),
+            Expr::Attribute(expr) => expr.normalize(indentation_level, environment),
+            Expr::Subscript(expr) => expr.normalize(indentation_level, environment),
+            Expr::Starred(expr) => expr.normalize(indentation_level, environment),
+            Expr::Name(expr) => expr.normalize(indentation_level, environment),
+            Expr::List(expr) => expr.normalize(indentation_level, environment),
+            Expr::Tuple(expr) => expr.normalize(indentation_level, environment),
+            Expr::Slice(expr) => expr.normalize(indentation_level, environment),
         }
     }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        match self {
+            Expr::Call(expr) => expr.statement_contains_call(),
+            _ => None,
+        }
+    }
+
 }
 
 /// See also [BoolOp](https://docs.python.org/3/library/ast.html#ast.BoolOp)
@@ -2188,6 +2529,31 @@ impl<R> Unparsable for ExprBoolOp<R> {
             result.push_str(&format!(" {} {}", self.op.unparse(0), value.unparse(0)));
         }
         result
+    }
+}
+
+impl<R> Normalizable for ExprBoolOp<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.values[0].to_normalization_form(indentation_level, environment));
+        for (i, value) in self.values.iter().enumerate().skip(1) {
+            result.push_str(&format!(" {} {}", self.op.unparse(0), value.to_normalization_form(indentation_level, environment)));
+        }
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for value in &self.values {
+            if let Some(call) = value.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
     }
 }
 
@@ -2221,6 +2587,31 @@ impl<R> Unparsable for ExprNamedExpr<R> {
         result.push_str(" := ");
         result.push_str(&self.value.unparse(0));
         result
+    }
+}
+
+impl<R> Normalizable for ExprNamedExpr<R> {
+    fn normalize(&self, indentation_level: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.target.to_normalization_form(indentation_level, environment));
+        result.push_str(" := ");
+        result.push_str(&self.value.to_normalization_form(indentation_level, environment));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        if let Some(call) = self.target.statement_contains_call() {
+            result.extend(call);
+        }
+        if let Some(call) = self.value.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
     }
 }
 
@@ -2258,6 +2649,31 @@ impl<R> Unparsable for ExprBinOp<R> {
     }
 }
 
+impl<R> Normalizable for ExprBinOp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.left.to_normalization_form(0, environment));
+        result.push_str(&format!(" {} ", self.op.unparse(0)));
+        result.push_str(&self.right.to_normalization_form(0, environment));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        if let Some(call) = self.left.statement_contains_call() {
+            result.extend(call);
+        }
+        if let Some(call) = self.right.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+}
+
 impl<R> Node for ExprBinOp<R> {
     const NAME: &'static str = "BinOp";
     const FIELD_NAMES: &'static [&'static str] = &["left", "op", "right"];
@@ -2286,6 +2702,18 @@ impl<R> Unparsable for ExprUnaryOp<R> {
         let mut result = String::new();
         result.push_str(&format!("{}{}", self.op.unparse(0), self.operand.unparse(0)));
         result
+    }
+}
+
+impl<R> Normalizable for ExprUnaryOp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}{}", self.op.unparse(0), self.operand.to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        self.operand.statement_contains_call()
     }
 }
 
@@ -2320,6 +2748,18 @@ impl<R> Unparsable for ExprLambda<R> {
     }
 }
 
+impl<R> Normalizable for ExprLambda<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("lambda {}: {}", self.args.as_ref().to_normalization_form(0, environment), self.body.to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        self.body.statement_contains_call()
+    }
+}
+
 impl<R> Node for ExprLambda<R> {
     const NAME: &'static str = "Lambda";
     const FIELD_NAMES: &'static [&'static str] = &["args", "body"];
@@ -2350,6 +2790,33 @@ impl<R> Unparsable for ExprIfExp<R> {
         result.push_str(&format!("{} if {} else {}", self.body.unparse(0), self.test.unparse(0), self.orelse.unparse(0)));
         result
     }
+}
+
+impl<R> Normalizable for ExprIfExp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{} if {} else {}", self.body.to_normalization_form(0, environment), self.test.to_normalization_form(0, environment), self.orelse.to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        if let Some(call) = self.test.statement_contains_call() {
+            result.extend(call);
+        }
+        if let Some(call) = self.body.statement_contains_call() {
+            result.extend(call);
+        }
+        if let Some(call) = self.orelse.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
 }
 
 impl<R> Node for ExprIfExp<R> {
@@ -2394,6 +2861,46 @@ impl<R> Unparsable for ExprDict<R> {
         result
     }
 }
+
+impl<R> Normalizable for ExprDict<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("{");
+        for (i, (key, value)) in self.keys.iter().zip(self.values.iter()).enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            if let Some(key) = key {
+                result.push_str(&format!("{}: {}", key.to_normalization_form(0, environment), value.to_normalization_form(0, environment)));
+            } else {
+                result.push_str(&format!("{}", value.to_normalization_form(0, environment)));
+            }
+        }
+        result.push_str("}");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for key in &self.keys {
+            if let Some(call) = key.as_ref().and_then(|key| key.statement_contains_call()) {
+                result.extend(call);
+            }
+        }
+        for value in &self.values {
+            if let Some(call) = value.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+}
+
+
 impl<R> Node for ExprDict<R> {
     const NAME: &'static str = "Dict";
     const FIELD_NAMES: &'static [&'static str] = &["keys", "values"];
@@ -2429,6 +2936,36 @@ impl<R> Unparsable for ExprSet<R> {
         result.push_str("}");
         result
     }
+}
+
+impl<R> Normalizable for ExprSet<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("{");
+        for (i, elt) in self.elts.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&elt.to_normalization_form(0, environment));
+        }
+        result.push_str("}");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for elt in &self.elts {
+            if let Some(call) = elt.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
 }
 
 impl<R> Node for ExprSet<R> {
@@ -2467,6 +3004,38 @@ impl<R> Unparsable for ExprListComp<R> {
     }
 }
 
+impl<R> Normalizable for ExprListComp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("[");
+        result.push_str(&self.elt.to_normalization_form(0, environment));
+        for generator in &self.generators {
+            result.push_str(&generator.to_normalization_form(0, environment));
+        }
+        result.push_str("]");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for generator in &self.generators {
+            if let Some(call) = generator.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if let Some(call) = self.elt.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+
+}
+
 impl<R> Node for ExprListComp<R> {
     const NAME: &'static str = "ListComp";
     const FIELD_NAMES: &'static [&'static str] = &["elt", "generators"];
@@ -2501,6 +3070,38 @@ impl<R> Unparsable for ExprSetComp<R> {
         result.push_str("}");
         result
     }
+}
+
+impl<R> Normalizable for ExprSetComp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("{");
+        result.push_str(&self.elt.to_normalization_form(0, environment));
+        for generator in &self.generators {
+            result.push_str(&generator.to_normalization_form(0, environment));
+        }
+        result.push_str("}");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for generator in &self.generators {
+            if let Some(call) = generator.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if let Some(call) = self.elt.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+
 }
 
 impl<R> Node for ExprSetComp<R> {
@@ -2542,6 +3143,41 @@ impl<R> Unparsable for ExprDictComp<R> {
     }
 }
 
+impl<R> Normalizable for ExprDictComp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("{");
+        result.push_str(&self.key.to_normalization_form(0, environment));
+        result.push_str(": ");
+        result.push_str(&self.value.to_normalization_form(0, environment));
+        for generator in &self.generators {
+            result.push_str(&generator.to_normalization_form(0, environment));
+        }
+        result.push_str("}");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for generator in &self.generators {
+            if let Some(call) = generator.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if let Some(call) = self.key.statement_contains_call() {
+            result.extend(call);
+        }
+        if let Some(call) = self.value.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+}
+
 impl<R> Node for ExprDictComp<R> {
     const NAME: &'static str = "DictComp";
     const FIELD_NAMES: &'static [&'static str] = &["key", "value", "generators"];
@@ -2578,6 +3214,36 @@ impl<R> Unparsable for ExprGeneratorExp<R> {
     }
 }
 
+impl<R> Normalizable for ExprGeneratorExp<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("(");
+        result.push_str(&self.elt.to_normalization_form(0, environment));
+        for generator in &self.generators {
+            result.push_str(&generator.to_normalization_form(0, environment));
+        }
+        result.push_str(")");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for generator in &self.generators {
+            if let Some(call) = generator.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if let Some(call) = self.elt.statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+}
+
 impl<R> Node for ExprGeneratorExp<R> {
     const NAME: &'static str = "GeneratorExp";
     const FIELD_NAMES: &'static [&'static str] = &["elt", "generators"];
@@ -2606,6 +3272,19 @@ impl<R> Unparsable for ExprAwait<R> {
         result.push_str(&format!("await {}", self.value.unparse(0)));
         result
     }
+}
+
+impl<R> Normalizable for ExprAwait<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("await {}", self.value.to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        self.value.statement_contains_call()
+    }
+
 }
 
 impl<R> Node for ExprAwait<R> {
@@ -2641,6 +3320,25 @@ impl<R> Unparsable for ExprYield<R> {
     }
 }
 
+impl<R> Normalizable for ExprYield<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("yield");
+        if let Some(value) = &self.value {
+            result.push_str(&format!(" {}", value.to_normalization_form(0, environment)));
+        }
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        if let Some(value) = &self.value {
+            value.statement_contains_call()
+        } else {
+            None
+        }
+    }
+}
+
 impl<R> Node for ExprYield<R> {
     const NAME: &'static str = "Yield";
     const FIELD_NAMES: &'static [&'static str] = &["value"];
@@ -2669,6 +3367,19 @@ impl<R> Unparsable for ExprYieldFrom<R> {
         result.push_str(&format!("yield from {}", self.value.unparse(0)));
         result
     }
+}
+
+impl<R> Normalizable for ExprYieldFrom<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("yield from {}", self.value.to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        self.value.statement_contains_call()
+    }
+
 }
 
 impl<R> Node for ExprYieldFrom<R> {
@@ -2703,6 +3414,34 @@ impl<R> Unparsable for ExprCompare<R> {
             result.push_str(&format!(" {} {}", op.unparse(0), comparator.unparse(0)));
         }
         result
+    }
+}
+
+impl<R> Normalizable for ExprCompare<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.left.to_normalization_form(0, environment));
+        for (op, comparator) in self.ops.iter().zip(self.comparators.iter()) {
+            result.push_str(&format!(" {} {}", op.unparse(0), comparator.to_normalization_form(0, environment)));
+        }
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        if let Some(call) = self.left.statement_contains_call() {
+            result.extend(call);
+        }
+        for comparator in &self.comparators {
+            if let Some(call) = comparator.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
     }
 }
 
@@ -2752,6 +3491,51 @@ impl<R> Unparsable for ExprCall<R> {
     }
 }
 
+impl<R> Normalizable for ExprCall<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.func.to_normalization_form(0, environment));
+        result.push_str("(");
+        for (i, arg) in self.args.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&arg.to_normalization_form(0, environment));
+        }
+        for (i, keyword) in self.keywords.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&keyword.to_normalization_form(0, environment));
+        }
+        result.push_str(")");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        if let Some(call) = self.func.statement_contains_call() {
+            result.extend(call);
+        }
+        for arg in &self.args {
+            if let Some(call) = arg.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        for keyword in &self.keywords {
+            if let Some(call) = keyword.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+}
+
 impl<R> Node for ExprCall<R> {
     const NAME: &'static str = "Call";
     const FIELD_NAMES: &'static [&'static str] = &["func", "args", "keywords"];
@@ -2789,6 +3573,30 @@ impl<R> Unparsable for ExprFormattedValue<R> {
     }
 }
 
+impl<R> Normalizable for ExprFormattedValue<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("{");
+        result.push_str(&self.value.to_normalization_form(0, environment));
+        if let Some(format_spec) = &self.format_spec {
+            result.push_str(&format!(":{}", format_spec.to_normalization_form(0, environment)));
+        }
+        result.push_str("}");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        if let Some(call) = self.value.statement_contains_call() {
+            Some(call)
+        } else if let Some(format_spec) = &self.format_spec {
+            format_spec.statement_contains_call()
+        } else {
+            None
+        }
+    }
+
+}
+
 impl<R> Node for ExprFormattedValue<R> {
     const NAME: &'static str = "FormattedValue";
     const FIELD_NAMES: &'static [&'static str] = &["value", "conversion", "format_spec"];
@@ -2823,6 +3631,32 @@ impl<R> Unparsable for ExprJoinedStr<R> {
     }
 }
 
+impl<R> Normalizable for ExprJoinedStr<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("f\"");
+        for value in &self.values {
+            result.push_str(&value.to_normalization_form(0, environment));
+        }
+        result.push_str("\"");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for value in &self.values {
+            if let Some(call) = value.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+}
+
 impl<R> Node for ExprJoinedStr<R> {
     const NAME: &'static str = "JoinedStr";
     const FIELD_NAMES: &'static [&'static str] = &["values"];
@@ -2848,6 +3682,14 @@ pub struct ExprConstant<R = TextRange> {
 
 impl<R> Unparsable for ExprConstant<R> {
     fn unparse(&self, _: usize) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}", self.value));
+        result
+    }
+}
+
+impl<R> Normalizable for ExprConstant<R> {
+    fn normalize(&self, _: usize, _: &mut dyn Environment) -> String {
         let mut result = String::new();
         result.push_str(&format!("{}", self.value));
         result
@@ -2887,6 +3729,20 @@ impl<R> Unparsable for ExprAttribute<R> {
     }
 }
 
+impl<R> Normalizable for ExprAttribute<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.value.to_normalization_form(0, environment));
+        result.push_str(&format!(".{}", self.attr));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        self.value.statement_contains_call()
+    }
+
+}
+
 impl<R> Node for ExprAttribute<R> {
     const NAME: &'static str = "Attribute";
     const FIELD_NAMES: &'static [&'static str] = &["value", "attr", "ctx"];
@@ -2920,6 +3776,31 @@ impl<R> Unparsable for ExprSubscript<R> {
     }
 }
 
+impl<R> Normalizable for ExprSubscript<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&self.value.as_ref().to_normalization_form(0, environment));
+        result.push_str(&format!("[{}]", self.slice.as_ref().to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        if let Some(call) = self.value.as_ref().statement_contains_call() {
+            result.extend(call);
+        }
+        if let Some(call) = self.slice.as_ref().statement_contains_call() {
+            result.extend(call);
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+}
+
 impl<R> Node for ExprSubscript<R> {
     const NAME: &'static str = "Subscript";
     const FIELD_NAMES: &'static [&'static str] = &["value", "slice", "ctx"];
@@ -2949,6 +3830,22 @@ impl<R> Unparsable for ExprStarred<R> {
         result.push_str(&format!("*{}", self.value.unparse(0)));
         result
     }
+}
+
+impl<R> Normalizable for ExprStarred<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("*{}", self.value.to_normalization_form(0, environment)));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        match self.ctx {
+            ExprContext::Load => self.value.statement_contains_call(),
+            _ => None
+        }
+    }
+
 }
 
 impl<R> Node for ExprStarred<R> {
@@ -2993,6 +3890,22 @@ impl<R> Unparsable for ExprName<R> {
     }
 }
 
+impl<R> Normalizable for ExprName<R> {
+    fn normalize(&self, _: usize, _: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str(&format!("{}", self.id));
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        match self.ctx {
+            ExprContext::Load => Some(vec![self.id.as_str().to_string()]),
+            _ => None
+        }
+    }
+
+}
+
 impl<R> Node for ExprName<R> {
     const NAME: &'static str = "Name";
     const FIELD_NAMES: &'static [&'static str] = &["id", "ctx"];
@@ -3029,6 +3942,37 @@ impl<R> Unparsable for ExprList<R> {
         result.push_str("]");
         result
     }
+}
+
+impl<R> Normalizable for ExprList<R> {
+    fn normalize(&self, _: usize, environment: &mut dyn Environment) -> String {
+        let mut result = String::new();
+        result.push_str("[");
+        for (i, elt) in self.elts.iter().enumerate() {
+            if i != 0 {
+                result.push_str(", ");
+            }
+            result.push_str(&elt.to_normalization_form(0, environment));
+        }
+        result.push_str("]");
+        result
+    }
+
+    fn statement_contains_call(&self) -> Option<Vec<String>> {
+        let mut result = Vec::new();
+        for elt in &self.elts {
+            if let Some(call) = elt.statement_contains_call() {
+                result.extend(call);
+            }
+        }
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
+    }
+
+
 }
 
 impl<R> Node for ExprList<R> {
